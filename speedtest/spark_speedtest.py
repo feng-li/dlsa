@@ -10,10 +10,17 @@ import time
 ## spark = pyspark.sql.SparkSession.builder.appName("Spark Machine Learning App").getOrCreate()
 sc = pyspark.SparkContext("local", "Test App")
 
-data = norm.rvs(size=100000)
+data = norm.rvs(size=100000000)
 
-tic = time.clock()
 r = sc.parallelize(data)
+tic = time.clock()
+out = r.mean()
 toc = time.clock()
-print(r.mean())
+print(toc - tic)
+
+
+## Single Machine
+tic = time.clock()
+out = data.mean()
+toc = time.clock()
 print(toc - tic)
