@@ -3,14 +3,14 @@
 
 # https://help.aliyun.com/document_detail/28124.html
 # Fat executors: one executor per node
-EC=16
-EM=32g
+# EC=2
+# EM=32g
 
 # Tiny executors: one executor per core
-# EC=1
-# EM=2g
+EC=1
+EM=2g
 
-for i in {1..2..1}
+for i in 1 {2..64..4}
 do
     spark-submit \
         --master yarn  \
