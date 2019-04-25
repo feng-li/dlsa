@@ -18,7 +18,7 @@ do
         --driver-memory 30g    \
         --executor-memory $EM   \
         --num-executors $i      \
-        --executor-cores $EC
+        --executor-cores $EC    \
         --conf spark.rpc.message.maxSize=1024 \
         spark_speedtest.py   \
         > speedtest.s$i.ec$EC 2> speedtest.s$i.ec$EC.log
