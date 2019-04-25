@@ -9,7 +9,7 @@ import time
 import sys
 
 ## spark = pyspark.sql.SparkSession.builder.appName("Spark Machine Learning App").getOrCreate()
-## sc = pyspark.SparkContext("yarn", "Speed Test App")
+# sc = pyspark.SparkContext("yarn", "Speed Test App")
 
 
 ## PKU cluster
@@ -20,7 +20,7 @@ conf.setMaster(spark_master)
 conf.setAppName('spark-test')
 sc = pyspark.SparkContext(conf=conf)
 
-datasize = [2 ** x for x in range(20)]
+datasize = [2 ** x for x in range(25)]
 
 print(", ".join(["len", "memsize", "time_parallelize",  "time_broadcast", "time_clusterrun", "time_singlerun"]))
 
@@ -38,7 +38,7 @@ for i in datasize:
     tic = time.clock()
     out = rdd.mean()
     toc = time.clock()
-    time_cluster = toc - tic
+    time_clusterrun = toc - tic
 
     tic = time.clock()
     rdd1 = sc.broadcast(data)
@@ -49,10 +49,9 @@ for i in datasize:
     tic = time.clock()
     out = data.mean()
     toc = time.clock()
-    time_single = toc - tic
+    time_singlerun = toc - tic
 
-    out = [i, memsize, time_parallelize, time_broadcast, time_single]
-    print(", ".join(format(x, "10.8f") for x in out))
-    ## print(i, memsize, time_trans, time_cluster, time_single)
+    out = [i, memsize, time_parallelize, time_broadcast, time_clusterrun, time_singlerun]
+    print(", ".join(format(x, "10.4f") for x in out))
 
 sc.stop()
