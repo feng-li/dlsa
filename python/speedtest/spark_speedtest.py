@@ -22,7 +22,7 @@ sc = pyspark.SparkContext(conf=conf)
 
 datasize = [2 ** x for x in range(20)]
 
-print(", ".join(["len", "memsize", "time_comm", "time_clusterrun", "time_singlerun"]))
+print(", ".join(["len", "memsize", "time_parallelize",  "time_broadcast", "time_clusterrun", "time_singlerun"]))
 
 for i in datasize:
 
@@ -32,7 +32,7 @@ for i in datasize:
     tic = time.clock()
     rdd = sc.parallelize(data)
     toc = time.clock()
-    time_comm = toc - tic
+    time_parallelize = toc - tic
 
     ## Cluster time
     tic = time.clock()
@@ -40,13 +40,18 @@ for i in datasize:
     toc = time.clock()
     time_cluster = toc - tic
 
+    tic = time.clock()
+    rdd1 = sc.broadcast(data)
+    toc = time.clock()
+    time_broadcast = toc - tic
+
     ## Single Machine
     tic = time.clock()
     out = data.mean()
     toc = time.clock()
     time_single = toc - tic
 
-    out = [i, memsize, time_comm, time_cluster, time_single]
+    out = [i, memsize, time_parallelize, time_broadcast, time_single]
     print(", ".join(format(x, "10.8f") for x in out))
     ## print(i, memsize, time_trans, time_cluster, time_single)
 
