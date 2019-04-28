@@ -1,2 +1,6 @@
-# dlsa
-Code for Distributed Least Squares Approximations
+# `dlsa`: Distributed Least Squares Approximations
+
+# Requirement
+
+- Spark >= 2.3
+- sklearn 
