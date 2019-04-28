@@ -9,16 +9,16 @@ import time
 import sys
 
 ## spark = pyspark.sql.SparkSession.builder.appName("Spark Machine Learning App").getOrCreate()
-# sc = pyspark.SparkContext("yarn", "Speed Test App")
+sc = pyspark.SparkContext("yarn", "Speed Test App")
 
 
 ## PKU cluster
-spark_master = os.getenv('SPARK_MASTER')
-spark_master = 'spark://' + spark_master + ':7077'
-conf = pyspark.SparkConf()
-conf.setMaster(spark_master)
-conf.setAppName('spark-test')
-sc = pyspark.SparkContext(conf=conf)
+# spark_master = os.getenv('SPARK_MASTER')
+# spark_master = 'spark://' + spark_master + ':7077'
+# conf = pyspark.SparkConf()
+# conf.setMaster(spark_master)
+# conf.setAppName('spark-test')
+# sc = pyspark.SparkContext(conf=conf)
 
 datasize = [2 ** x for x in range(25)]
 

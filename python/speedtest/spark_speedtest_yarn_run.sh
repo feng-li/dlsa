@@ -10,8 +10,8 @@
 EC=1
 EM=2g
 
-# for i in 1 {2..64..4}
-for i in 1 2
+for i in 1 {2..64..4}
+# for i in 1 2
 do
     spark-submit \
         --master yarn  \

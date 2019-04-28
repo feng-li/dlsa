@@ -11,7 +11,7 @@ EM=80g
 # EC=1
 # EM=5g
 
-for i in 1 {5..100..5} # 1, 5, 10, 15, ... , 100
+for i in 1 {4..100..4} # 1, 5, 10, 15, ... , 100
 do
     spark-submit \
         --master spark://${SPARK_MASTER}:7077  \
