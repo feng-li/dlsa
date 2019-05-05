@@ -1,6 +1,5 @@
 #! /usr/bin/python3
 
-
 import findspark
 findspark.init("/usr/lib/spark-current")
 import pyspark
@@ -15,9 +14,10 @@ from pyspark.ml.feature import VectorAssembler
 
 spark = pyspark.sql.SparkSession.builder.appName("Spark Machine Learning App").getOrCreate()
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
-## sc = pyspark.SparkContext("yarn", "Speed Test App")
 
-n = 100000
+## Simulate Data
+
+n = 10000
 p = 200
 features = np.random.rand(n, p)
 label = np.random.binomial(n=1,p=0.6, size=n).reshape(n, 1)
@@ -29,18 +29,24 @@ assembler = VectorAssembler(
     inputCols=["x" + str(x) for x in range(p)],
     outputCol="features")
 
-output = assembler.transform(data)
+parsedData = assembler.transform(data)
+
+##----------------------------------------------------------------------------------------
+## Logistic Regression with SGD
+##----------------------------------------------------------------------------------------
 
 tic = time.clock()
 # Model configuration
 lr = LogisticRegression(maxIter=100, regParam=0.3, elasticNetParam=0.8)
 
 # Fit the model
-lrModel = lr.fit(output)
+lrModel = lr.fit(parsedData)
 
 # Model fitted
-# print(lrModel.intercept)
-# print(lrModel.coefficients)
+print(lrModel.intercept)
+print(lrModel.coefficients)
+
 toc = time.clock()
 
 print(toc - tic)
+spark.stop()
