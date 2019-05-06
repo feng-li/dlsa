@@ -1,27 +1,31 @@
 #! /bin/bash
 
-
 # https://help.aliyun.com/document_detail/28124.html
+
 # Fat executors: one executor per node
-# EC=2
-# EM=32g
+# EC=16
+# EM=30g
 
 # Tiny executors: one executor per core
 EC=1
-EM=2g
+EM=5g
 
-for i in 1 {2..64..4}
-# for i in 1 2
+MODEL_FILE=logistic_LBFGS
+
+# for i in 1 {4..100..4} # 1, 5, 10, 15, ... , 100
+for i in {64..4..-4}
 do
-    spark-submit \
-        --master yarn  \
-        --driver-memory 30g    \
-        --executor-memory $EM   \
-        --num-executors $i      \
-        --executor-cores $EC    \
-        --conf spark.rpc.message.maxSize=1024 \
-        spark_speedtest.py   \
-        > speedtest.s$i.ec$EC 2> speedtest.s$i.ec$EC.log
+    PYSPARK_PYTHON=python3 spark-submit \
+                  --master yarn  \
+                  --driver-memory 50g    \
+                  --executor-memory ${EM}   \
+                  --num-executors ${i}      \
+                  --executor-cores ${EC}    \
+                  --conf spark.rpc.message.maxSize=1024 \
+                  ${MODEL_FILE}.py  \
+                  > ${MODEL_FILE}.NE${i}.EC${EC}.out 2> ${MODEL_FILE}.NE${i}.EC${EC}.log
+    echo ${MODEL_FILE}.NE${i}.EC${EC} done!
+
 done
 
 exit 0;
