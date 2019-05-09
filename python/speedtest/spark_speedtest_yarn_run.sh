@@ -11,6 +11,7 @@ EC=1
 EM=5g
 
 MODEL_FILE=logistic_LBFGS
+# MODEL_FILE=logistic_SGD
 
 # for i in 1 {4..100..4} # 1, 5, 10, 15, ... , 100
 for i in {64..4..-4}

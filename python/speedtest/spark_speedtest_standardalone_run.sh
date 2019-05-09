@@ -11,7 +11,10 @@ EM=80g
 # EC=1
 # EM=5g
 
-for i in 1 {4..100..4} # 1, 5, 10, 15, ... , 100
+MODEL_FILE=logistic_LBFGS.p
+
+# for i in 1 {4..100..4} # 1, 5, 10, 15, ... , 100
+for i in 1 2
 do
     spark-submit \
         --master spark://${SPARK_MASTER}:7077  \
@@ -20,8 +23,8 @@ do
         --num-executors $i      \
         --executor-cores $EC    \
         --conf spark.rpc.message.maxSize=1024 \
-        spark_speedtest.py   \
-        > speedtest.s$i.ec$EC 2> speedtest.s$i.ec$EC.log
+        $MODEL_FILE  \
+        > $MODEL_FILE.NE$i.EC$EC.out 2> $MODEL_FILE.NE$i.EC$EC.log
 done
 
 exit 0;
