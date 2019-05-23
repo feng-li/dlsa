@@ -24,9 +24,6 @@ from (
 )
 """)
 
-# preview the results
-display(spark_df)
-
 
 
 # define a schema for the result set, the user ID and model prediction
@@ -46,4 +43,3 @@ def apply_model(sample_pd):
 
 # partition the data and run the UDF
 results = spark_df.groupby('partition_id').apply(apply_model)
-display(results)
