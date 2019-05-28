@@ -20,6 +20,9 @@ pandas_df = pd.read_csv("../data/games-expand.csv")
 spark_df = spark.createDataFrame(pandas_df)
 
 # assign a user ID and a partition ID using Spark SQL
+# FIXME: WARN WindowExec: No Partition Defined for Window operation! Moving all data to a
+# single partition, this can cause serious performance
+# degradation. https://databricks.com/blog/2015/07/15/introducing-window-functions-in-spark-sql.html
 spark_df.createOrReplaceTempView("spark_df")
 spark_df = spark.sql("""
 select *, user_id%10 as partition_id
