@@ -33,6 +33,7 @@ def ols(pdf):
     X = sm.add_constant(X)
     model = sm.OLS(y, X).fit()
 
-    return pd.DataFrame([[group_key] + [model.params[i] for i in   x_columns]], columns=[group_column] + x_columns)
+    return pd.DataFrame([[group_key] + [model.params[i] for i in   x_columns]],
+                        columns=[group_column] + x_columns)
 
 beta = df2.groupby(group_column).apply(ols)
