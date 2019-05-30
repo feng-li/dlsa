@@ -13,7 +13,7 @@ from sklearn.linear_model import LogisticRegression
 
 spark = pyspark.sql.SparkSession.builder.appName("Spark Machine Learning App").getOrCreate()
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
-#spark.conf.set("spark.sql.shuffle.partitions", 10)
+spark.conf.set("spark.sql.shuffle.partitions", 10)
 print(spark.conf.get("spark.sql.shuffle.partitions"))
 
 
@@ -62,7 +62,7 @@ schema_beta = data_sdf.schema[1:]
 #     outputCol="features")
 
 # tic = time.clock()
-# parsedData = assembler.transform(data)
+# parsedData = assembler.transform(data_sdf)
 # time_parallelize = time.clock() - tic
 
 # tic = time.clock()
