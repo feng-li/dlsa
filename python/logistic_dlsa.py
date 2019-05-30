@@ -83,7 +83,7 @@ schema_beta = data_sdf.schema[1:]
 # print(", ".join(format(x, "10.4f") for x in out))
 
 ##----------------------------------------------------------------------------------------
-## Logistic Regression with DLSA
+## LOGISTIC REGRESSION WITH DLSA
 ##----------------------------------------------------------------------------------------
 
 # assign a user ID and a partition ID using Spark SQL
@@ -99,6 +99,9 @@ from (
 )
 """)
 
+##----------------------------------------------------------------------------------------
+## APPLY USER-DEFINED FUNCTIONS TO PARTITIONED DATA
+##----------------------------------------------------------------------------------------
 
 # define the Pandas UDF
 @pandas_udf(schema_beta, PandasUDFType.GROUPED_MAP)
@@ -114,4 +117,10 @@ def logistic_model(sample_df):
 
 # partition the data and run the UDF
 results = data_sdf.groupby('partition_id').apply(logistic_model)
+
+
+##----------------------------------------------------------------------------------------
+## MERGE AND DEBIAS
+##----------------------------------------------------------------------------------------
+
 print(results.toPandas())

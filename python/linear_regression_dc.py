@@ -37,3 +37,4 @@ def ols(pdf):
                         columns=[group_column] + x_columns)
 
 beta = df2.groupby(group_column).apply(ols)
+beta.collect()

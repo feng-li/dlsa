@@ -14,4 +14,4 @@ y_train = pandas_df["label"]
 model = LogisticRegression(solver="lbfgs", fit_intercept=False)
 model.fit(x_train, y_train)
 model.coef_
-pred = model.predict_proba(x_train)
+## pred = model.predict_proba(x_train)
