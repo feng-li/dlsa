@@ -6,6 +6,7 @@ findspark.init("/usr/lib/spark-current")
 import pyspark
 from pyspark.sql.types import *
 from pyspark.sql.functions import pandas_udf, PandasUDFType
+
 import pandas as pd
 import numpy as np
 
@@ -133,7 +134,6 @@ def logistic_model(sample_df):
 
 # partition the data and run the UDF
 results = data_sdf.groupby('partition_id').apply(logistic_model)
-
 
 ##----------------------------------------------------------------------------------------
 ## MERGE AND DEBIAS
