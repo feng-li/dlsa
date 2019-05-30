@@ -14,7 +14,7 @@ from sklearn.linear_model import LogisticRegression
 spark = pyspark.sql.SparkSession.builder.appName("Spark Machine Learning App").getOrCreate()
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
 #spark.conf.set("spark.sql.shuffle.partitions", 10)
-spark.conf.get("spark.sql.shuffle.partitions")
+print(spark.conf.get("spark.sql.shuffle.partitions"))
 
 
 ##----------------------------------------------------------------------------------------
