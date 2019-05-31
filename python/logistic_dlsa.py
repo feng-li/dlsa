@@ -45,12 +45,12 @@ print(spark.conf.get("spark.sql.shuffle.partitions"))
 ##----------------------------------------------------------------------------------------
 
 ## Simulate Data
-n = 50000
+n = 5000
 p = 50
 p1 = int(p * 0.3)
 
 partition_method = "systematic"
-partition_num = 20
+partition_num = 4
 
 ## TRUE beta
 beta = np.zeros(p).reshape(p, 1)
@@ -77,8 +77,13 @@ data_np = np.concatenate((partition_id, label, features), 1)
 data_pdf = pd.DataFrame(data_np, columns=["partition_id"] + ["label"] + ["x" + str(x) for x in range(p)])
 data_sdf = spark.createDataFrame(data_pdf)
 
-# define a beta schema
-schema_beta = data_sdf.schema[2:]
+# define a beta schema FIXME: the first two elements of schema are not right. should be
+# 'coef', and 'Sig_invMcoef', is "partition_id" and "label"
+schema_beta = StructType(
+    [StructField('par_id', IntegerType(), True),
+     StructField('coef', DoubleType(), True),
+     StructField('Sig_invMcoef', DoubleType(), True)]
+    + data_sdf.schema.fields[2:])
 
 ##----------------------------------------------------------------------------------------
 ## Logistic Regression with SGD
@@ -128,15 +133,36 @@ def logistic_model(sample_df):
     y_train = sample_df["label"]
     model = LogisticRegression(solver="lbfgs", fit_intercept=False)
     model.fit(x_train, y_train)
-    coef = model.coef_
+    prob = model.predict_proba(x_train)[:, 0]
+    p = model.coef_.size
 
-    return pd.DataFrame(coef)
+    coef = model.coef_.reshape(p, 1) # p-by-1
+    Sig_inv = x_train.T.dot(np.multiply((prob*(1-prob))[:,None],x_train)) / prob.size # p-by-p
+    Sig_invMcoef = Sig_inv.dot(coef) # p-by-1
+
+    par_id = np.arange(p)
+
+    out_np = np.concatenate((coef, Sig_invMcoef, Sig_inv),1) # p-by-(2+p)
+    out_pdf = pd.DataFrame(out_np)
+    out = pd.concat([pd.DataFrame(par_id,columns=["par_id"]), out_pdf],1)
+    return out
+
+    # return pd.DataFrame(Sig_inv)
 
 # partition the data and run the UDF
-results = data_sdf.groupby('partition_id').apply(logistic_model)
+mapped_sdf = data_sdf.groupby('partition_id').apply(logistic_model)
 
+# mapped_pdf = mapped_sdf.toPandas()
 ##----------------------------------------------------------------------------------------
 ## MERGE AND DEBIAS
 ##----------------------------------------------------------------------------------------
+groupped_sdf = mapped_sdf.groupby('par_id')
+groupped_sdf_sum = groupped_sdf.sum(*mapped_sdf.columns[1:])
+groupped_pdf_sum = groupped_sdf_sum.toPandas().sort_values("par_id")
 
-print(results.toPandas())
+Sig_invMcoef_sum = groupped_pdf_sum.iloc[:,2]
+Sig_inv_sum = groupped_pdf_sum.iloc[:,3:]
+
+out_par = np.linalg.solve(Sig_inv_sum,Sig_invMcoef_sum)
+out_par_onehot = groupped_pdf_sum['sum(coef)'] / data_sdf.rdd.getNumPartitions()
+# out_par_onehot = groupped_pdf_sum['sum(coef)'] / partition_num
