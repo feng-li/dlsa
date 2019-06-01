@@ -7,6 +7,6 @@
   - `sklearn` 
   - `rpy2`
   
- - R
+- R
   - `lars`
 
