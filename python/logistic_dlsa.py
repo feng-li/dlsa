@@ -169,19 +169,21 @@ out_par_onehot = groupped_pdf_sum['sum(coef)'] / data_sdf.rdd.getNumPartitions()
 
 
 ##----------------------------------------------------------------------------------------
-## MERGE AND DEBIAS with LSA
+## MERGE with LSA
 ##----------------------------------------------------------------------------------------
-# TOOD: write a native `lars_las()` function
+# Python does not have a good lars package. At the moment we implement this via calling R
+# code directly, provided that R package `lars` and python package `rpy2` are both
+# installed. FIXME: write a native `lars_las()` function.
 import rpy2.robjects as robjects
 from rpy2.robjects import numpy2ri
 
-def dlsa(Sig_inv, beta, sample_size, intercept=False):
+def dlsa(Sig_inv_, beta_, sample_size, intercept=False):
 
-    robjects.r.source("/home/lifeng/code/dlsa/R/dlsa_alasso_func.R")
+    robjects.r.source("/home/lifeng/code/dlsa/R/dlsa_alasso_func.R", verbose=False)
     lars_lsa=robjects.r['lars.lsa']
 
     numpy2ri.activate()
-    dfitted = lars_lsa(np.array(Sig_inv),np.array(out_par),intercept=False,n=200)
+    dfitted = lars_lsa(np.array(Sig_inv_),np.array(beta_),intercept=False,n=sample_size)
     numpy2ri.deactivate()
 
     AIC = robjects.FloatVector(dfitted.rx2("AIC"))
@@ -193,10 +195,13 @@ def dlsa(Sig_inv, beta, sample_size, intercept=False):
 
     if intercept:
         beta0 = np.array(robjects.FloatVector(dfitted.rx2("beta0")) + beta[0])
-        beta_AIC = np.concatenate(beta0[AIC_minIdx], beta[AIC_minIdx, :])
-        beta_BIC = np.concatenate(beta0[BIC_minIdx], beta[BIC_minIdx, :])
+        beta_byAIC = np.concatenate(beta0[AIC_minIdx], beta[AIC_minIdx, :])
+        beta_byBIC = np.concatenate(beta0[BIC_minIdx], beta[BIC_minIdx, :])
     else:
-        beta_AIC = beta[AIC_minIdx, :]
-        beta_BIC = beta[BIC_minIdx, :]
+        beta_byAIC = beta[AIC_minIdx, :]
+        beta_byBIC = beta[BIC_minIdx, :]
 
-    return  pd.DataFrame(beta_AIC, beta_BIC)
+    return  pd.DataFrame({"beta_byAIC":beta_byAIC, "beta_byBIC": beta_byBIC})
+
+out_dlsa = dlsa(Sig_inv_=Sig_inv_sum, beta_=out_par, sample_size=data_sdf.count(), intercept=False)
+print(out_dlsa)
