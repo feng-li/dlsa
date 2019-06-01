@@ -171,5 +171,32 @@ out_par_onehot = groupped_pdf_sum['sum(coef)'] / data_sdf.rdd.getNumPartitions()
 ##----------------------------------------------------------------------------------------
 ## MERGE AND DEBIAS with LSA
 ##----------------------------------------------------------------------------------------
-# TOOD: write a function
-# def dlsa(mapped_sdf):
+# TOOD: write a native `lars_las()` function
+import rpy2.robjects as robjects
+from rpy2.robjects import numpy2ri
+
+def dlsa(Sig_inv, beta, sample_size, intercept=False):
+
+    robjects.r.source("/home/lifeng/code/dlsa/R/dlsa_alasso_func.R")
+    lars_lsa=robjects.r['lars.lsa']
+
+    numpy2ri.activate()
+    dfitted = lars_lsa(np.array(Sig_inv),np.array(out_par),intercept=False,n=200)
+    numpy2ri.deactivate()
+
+    AIC = robjects.FloatVector(dfitted.rx2("AIC"))
+    AIC_minIdx = np.argmin(AIC)
+    BIC = robjects.FloatVector(dfitted.rx2("BIC"))
+    BIC_minIdx = np.argmin(BIC)
+    beta = np.array(robjects.FloatVector(dfitted.rx2("beta")))
+
+
+    if intercept:
+        beta0 = np.array(robjects.FloatVector(dfitted.rx2("beta0")) + beta[0])
+        beta_AIC = np.concatenate(beta0[AIC_minIdx], beta[AIC_minIdx, :])
+        beta_BIC = np.concatenate(beta0[BIC_minIdx], beta[BIC_minIdx, :])
+    else:
+        beta_AIC = beta[AIC_minIdx, :]
+        beta_BIC = beta[BIC_minIdx, :]
+
+    return  pd.DataFrame(beta_AIC, beta_BIC)
