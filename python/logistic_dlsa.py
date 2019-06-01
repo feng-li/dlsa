@@ -154,7 +154,7 @@ mapped_sdf = data_sdf.groupby('partition_id').apply(logistic_model)
 
 # mapped_pdf = mapped_sdf.toPandas()
 ##----------------------------------------------------------------------------------------
-## MERGE AND DEBIAS
+## MERGE
 ##----------------------------------------------------------------------------------------
 groupped_sdf = mapped_sdf.groupby('par_id')
 groupped_sdf_sum = groupped_sdf.sum(*mapped_sdf.columns[1:])
@@ -166,3 +166,10 @@ Sig_inv_sum = groupped_pdf_sum.iloc[:,3:]
 out_par = np.linalg.solve(Sig_inv_sum,Sig_invMcoef_sum)
 out_par_onehot = groupped_pdf_sum['sum(coef)'] / data_sdf.rdd.getNumPartitions()
 # out_par_onehot = groupped_pdf_sum['sum(coef)'] / partition_num
+
+
+##----------------------------------------------------------------------------------------
+## MERGE AND DEBIAS with LSA
+##----------------------------------------------------------------------------------------
+# TOOD: write a function
+# def dlsa(mapped_sdf):
