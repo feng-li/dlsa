@@ -1,6 +1,12 @@
 # `dlsa`: Distributed Least Squares Approximations
 
-# Requirement
+# Requirements
 
-- Spark >= 2.3
-- sklearn 
+- Python
+  - `Spark >= 2.3`
+  - `sklearn` 
+  - `rpy2`
+  
+- R
+  - `lars`
+
