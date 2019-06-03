@@ -5,13 +5,16 @@ findspark.init("/usr/lib/spark-current")
 
 import pyspark
 
+import os
+
 import numpy as np
 import pandas as pd
 
 from pyspark.sql.types import *
 from pyspark.sql.functions import pandas_udf, PandasUDFType
 
-from dlsa import dlsa, dlsa_r, dlsa_mapred, simulate_logistic
+from dlsa import dlsa, dlsa_r, dlsa_mapred
+from models import simulate_logistic, logistic_model
 from sklearn.linear_model import LogisticRegression
 
 from rpy2.robjects import numpy2ri
@@ -21,6 +24,7 @@ spark = pyspark.sql.SparkSession.builder.appName("Spark DLSA App").getOrCreate()
 # Enable Arrow-based columnar data transfers
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
 spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "true")
+spark.sparkContext.addPyFile(os.path.dirname(os.path.abspath(__file__)) + "/models.py")
 
 # https://docs.azuredatabricks.net/spark/latest/spark-sql/udf-python-pandas.html#setting-arrow-batch-size
 # spark.conf.set("spark.sql.execution.arrow.maxRecordsPerBatch", 10000) # default
@@ -78,36 +82,10 @@ schema_beta = StructType(
     + data_sdf.schema.fields[2:])
 
 @pandas_udf(schema_beta, PandasUDFType.GROUPED_MAP)
-# def logistic_model_udf(sample_df):
-#     return logistic_model(sample_df)
+def logistic_model_udf(sample_df):
+    return logistic_model(sample_df)
 
-def logistic_model(sample_df):
-    # run the model on the partitioned data set
-    # x_train = sample_df.drop(['label', 'row_id', 'partition_id'], axis=1)
-    x_train = sample_df.drop(['partition_id', 'label'], axis=1)
-    y_train = sample_df["label"]
-    model = LogisticRegression(solver="lbfgs", fit_intercept=False)
-    model.fit(x_train, y_train)
-    prob = model.predict_proba(x_train)[:, 0]
-    p = model.coef_.size
-
-    coef = model.coef_.reshape(p, 1) # p-by-1
-    Sig_inv = x_train.T.dot(np.multiply((prob*(1-prob))[:,None],x_train)) / prob.size # p-by-p
-    Sig_invMcoef = Sig_inv.dot(coef) # p-by-1
-
-    # grad = np.dot(x_train.T, y_train - prob)
-
-    par_id = np.arange(p)
-
-    out_np = np.concatenate((coef, Sig_invMcoef, Sig_inv),1) # p-by-(2+p)
-    out_pdf = pd.DataFrame(out_np)
-    out = pd.concat([pd.DataFrame(par_id,columns=["par_id"]), out_pdf],1)
-
-    return out
-    # return pd.DataFrame(Sig_inv)
-
-Sig_inv_beta = dlsa_mapred(logistic_model, data_sdf, "partition_id")
-
+Sig_inv_beta = dlsa_mapred(logistic_model_udf, data_sdf, "partition_id")
 ##----------------------------------------------------------------------------------------
 ## FINAL OUTPUT
 ##----------------------------------------------------------------------------------------

@@ -6,12 +6,15 @@
 # EC=16
 # EM=30g
 
+# Make a zip package
+# zip -r ../../dlsa.zip ../dlsa.py ../R/dlsa_alasso_func.R
+
 # Tiny executors: one executor per core
 EC=1
 EM=1g
 
-MODEL_FILE=logistic_spark
-# MODEL_FILE=logistic_dlsa
+# MODEL_FILE=logistic_spark
+MODEL_FILE=logistic_dlsa
 OUTPATH=~/running/
 # MODEL_FILE=logistic_SGD
 
