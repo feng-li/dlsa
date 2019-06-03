@@ -47,7 +47,7 @@ def dlsa_mapred(model, data_sdf, partition_id):
 
 
 
-robjects.r.source(os.path.dirname(os.path.abspath(__file__)) + "/../R/dlsa_alasso_func.R", verbose=False)
+robjects.r.source(os.path.dirname(os.path.abspath(__file__)) + "/R/dlsa_alasso_func.R", verbose=False)
 lars_lsa=robjects.r['lars.lsa']
 
 # R version
