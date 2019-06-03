@@ -14,6 +14,8 @@ from pyspark.ml.classification import LogisticRegression
 from pyspark.ml.linalg import Vectors
 from pyspark.ml.feature import VectorAssembler
 
+from dlsa import simulate_logistic
+
 spark = pyspark.sql.SparkSession.builder.appName("Spark Native Logistic Regression App").getOrCreate()
 
 tic0 = time.clock()
