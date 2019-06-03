@@ -12,11 +12,17 @@ import numpy as np
 
 from sklearn.linear_model import LogisticRegression
 
-spark = pyspark.sql.SparkSession.builder.appName("Spark Machine Learning App").getOrCreate()
+from dlsa import dlsa, dlsa_r
+from rpy2.robjects import numpy2ri
+
+spark = pyspark.sql.SparkSession.builder.appName("Spark DLSA App").getOrCreate()
 
 # Enable Arrow-based columnar data transfers
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
 spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "true")
+
+# https://docs.azuredatabricks.net/spark/latest/spark-sql/udf-python-pandas.html#setting-arrow-batch-size
+# spark.conf.set("spark.sql.execution.arrow.maxRecordsPerBatch", 10000) # default
 
 # spark.conf.set("spark.sql.shuffle.partitions", 10)
 print(spark.conf.get("spark.sql.shuffle.partitions"))
@@ -49,11 +55,11 @@ print(spark.conf.get("spark.sql.shuffle.partitions"))
 
 ## Simulate Data
 n = 5000
-p = 5
+p = 50
 p1 = int(p * 0.4)
 
 partition_method = "systematic"
-partition_num = 4
+partition_num = 200
 
 ## TRUE beta
 beta = np.zeros(p).reshape(p, 1)
@@ -126,7 +132,7 @@ schema_beta = StructType(
      StructField('Sig_invMcoef', DoubleType(), True)]
     + data_sdf.schema.fields[2:])
 
-# define the Pandas UDF
+# Register a user defined function via the Pandas UDF
 @pandas_udf(schema_beta, PandasUDFType.GROUPED_MAP)
 def logistic_model(sample_df):
     # run the model on the partitioned data set
@@ -149,9 +155,12 @@ def logistic_model(sample_df):
     out_np = np.concatenate((coef, Sig_invMcoef, Sig_inv),1) # p-by-(2+p)
     out_pdf = pd.DataFrame(out_np)
     out = pd.concat([pd.DataFrame(par_id,columns=["par_id"]), out_pdf],1)
-    return out
 
+    return out
     # return pd.DataFrame(Sig_inv)
+
+# #logistic_model_udf=pandas_udf(logistic_model, schema_beta)
+# _= spark.udf.register('logistic_model', logistic_model)
 
 # partition the data and run the UDF
 mapped_sdf = data_sdf.groupby('partition_id').apply(logistic_model)
@@ -175,44 +184,6 @@ out_par_onehot = groupped_pdf_sum['sum(coef)'] / data_sdf.rdd.getNumPartitions()
 ##----------------------------------------------------------------------------------------
 ## MERGE with LSA
 ##----------------------------------------------------------------------------------------
-# Python does not have a good lars package. At the moment we implement this via calling R
-# code directly, provided that R package `lars` and python package `rpy2` are both
-# installed. FIXME: write a native `lars_las()` function.
-
-import rpy2.robjects as robjects
-from rpy2.robjects import numpy2ri
-robjects.r.source("/home/lifeng/code/dlsa/R/dlsa_alasso_func.R", verbose=False)
-lars_lsa=robjects.r['lars.lsa']
-
-# R version
-dlsa_r=robjects.r['dlsa']
-
-# Python version
-def dlsa(Sig_inv_, beta_, sample_size, intercept=False):
-
-
-    numpy2ri.activate()
-    dfitted = lars_lsa(np.asarray(Sig_inv_), np.asarray(beta_),
-                       intercept=intercept, n=sample_size)
-    numpy2ri.deactivate()
-
-    AIC = robjects.FloatVector(dfitted.rx2("AIC"))
-    AIC_minIdx = np.argmin(AIC)
-    BIC = robjects.FloatVector(dfitted.rx2("BIC"))
-    BIC_minIdx = np.argmin(BIC)
-    beta = np.array(robjects.FloatVector(dfitted.rx2("beta")))
-
-
-    if intercept:
-        beta0 = np.array(robjects.FloatVector(dfitted.rx2("beta0")) + beta[0])
-        beta_byAIC = np.concatenate(beta0[AIC_minIdx], beta[AIC_minIdx, :])
-        beta_byBIC = np.concatenate(beta0[BIC_minIdx], beta[BIC_minIdx, :])
-    else:
-        beta_byAIC = beta[AIC_minIdx, :]
-        beta_byBIC = beta[BIC_minIdx, :]
-
-    return  pd.DataFrame({"beta_byAIC":beta_byAIC, "beta_byBIC": beta_byBIC})
-
 
 ##----------------------------------------------------------------------------------------
 ## FINAL OUTPUT
@@ -224,4 +195,3 @@ print(out_dlsa)
 numpy2ri.activate()
 out_dlsa_r = dlsa_r(Sig_inv_=np.asarray(Sig_inv_sum), beta_=out_par,
                     sample_size=data_sdf.count(), intercept=False)
-numpy2ri.deactivate()
