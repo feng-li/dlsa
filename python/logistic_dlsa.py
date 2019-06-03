@@ -13,10 +13,13 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 spark = pyspark.sql.SparkSession.builder.appName("Spark Machine Learning App").getOrCreate()
+
+# Enable Arrow-based columnar data transfers
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
+spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "true")
+
 # spark.conf.set("spark.sql.shuffle.partitions", 10)
 print(spark.conf.get("spark.sql.shuffle.partitions"))
-
 
 ##----------------------------------------------------------------------------------------
 ## USING REAL DATA
@@ -46,8 +49,8 @@ print(spark.conf.get("spark.sql.shuffle.partitions"))
 
 ## Simulate Data
 n = 5000
-p = 50
-p1 = int(p * 0.3)
+p = 5
+p1 = int(p * 0.4)
 
 partition_method = "systematic"
 partition_num = 4
@@ -76,14 +79,6 @@ for i in range(n):
 data_np = np.concatenate((partition_id, label, features), 1)
 data_pdf = pd.DataFrame(data_np, columns=["partition_id"] + ["label"] + ["x" + str(x) for x in range(p)])
 data_sdf = spark.createDataFrame(data_pdf)
-
-# define a beta schema FIXME: the first two elements of schema are not right. should be
-# 'coef', and 'Sig_invMcoef', is "partition_id" and "label"
-schema_beta = StructType(
-    [StructField('par_id', IntegerType(), True),
-     StructField('coef', DoubleType(), True),
-     StructField('Sig_invMcoef', DoubleType(), True)]
-    + data_sdf.schema.fields[2:])
 
 ##----------------------------------------------------------------------------------------
 ## Logistic Regression with SGD
@@ -123,6 +118,13 @@ data_sdf = data_sdf.repartition(partition_num, "partition_id")
 ##----------------------------------------------------------------------------------------
 ## APPLY USER-DEFINED FUNCTIONS TO PARTITIONED DATA
 ##----------------------------------------------------------------------------------------
+# define a beta schema FIXME: the first two elements of schema are not right. should be
+# 'coef', and 'Sig_invMcoef', is "partition_id" and "label"
+schema_beta = StructType(
+    [StructField('par_id', IntegerType(), True),
+     StructField('coef', DoubleType(), True),
+     StructField('Sig_invMcoef', DoubleType(), True)]
+    + data_sdf.schema.fields[2:])
 
 # define the Pandas UDF
 @pandas_udf(schema_beta, PandasUDFType.GROUPED_MAP)
@@ -139,6 +141,8 @@ def logistic_model(sample_df):
     coef = model.coef_.reshape(p, 1) # p-by-1
     Sig_inv = x_train.T.dot(np.multiply((prob*(1-prob))[:,None],x_train)) / prob.size # p-by-p
     Sig_invMcoef = Sig_inv.dot(coef) # p-by-1
+
+    # grad = np.dot(x_train.T, y_train - prob)
 
     par_id = np.arange(p)
 
@@ -163,7 +167,7 @@ groupped_pdf_sum = groupped_sdf_sum.toPandas().sort_values("par_id")
 Sig_invMcoef_sum = groupped_pdf_sum.iloc[:,2]
 Sig_inv_sum = groupped_pdf_sum.iloc[:,3:]
 
-out_par = np.linalg.solve(Sig_inv_sum,Sig_invMcoef_sum)
+out_par = np.linalg.solve(Sig_inv_sum, Sig_invMcoef_sum)
 out_par_onehot = groupped_pdf_sum['sum(coef)'] / data_sdf.rdd.getNumPartitions()
 # out_par_onehot = groupped_pdf_sum['sum(coef)'] / partition_num
 
@@ -174,16 +178,22 @@ out_par_onehot = groupped_pdf_sum['sum(coef)'] / data_sdf.rdd.getNumPartitions()
 # Python does not have a good lars package. At the moment we implement this via calling R
 # code directly, provided that R package `lars` and python package `rpy2` are both
 # installed. FIXME: write a native `lars_las()` function.
+
 import rpy2.robjects as robjects
 from rpy2.robjects import numpy2ri
+robjects.r.source("/home/lifeng/code/dlsa/R/dlsa_alasso_func.R", verbose=False)
+lars_lsa=robjects.r['lars.lsa']
 
+# R version
+dlsa_r=robjects.r['dlsa']
+
+# Python version
 def dlsa(Sig_inv_, beta_, sample_size, intercept=False):
 
-    robjects.r.source("/home/lifeng/code/dlsa/R/dlsa_alasso_func.R", verbose=False)
-    lars_lsa=robjects.r['lars.lsa']
 
     numpy2ri.activate()
-    dfitted = lars_lsa(np.array(Sig_inv_),np.array(beta_),intercept=False,n=sample_size)
+    dfitted = lars_lsa(np.asarray(Sig_inv_), np.asarray(beta_),
+                       intercept=intercept, n=sample_size)
     numpy2ri.deactivate()
 
     AIC = robjects.FloatVector(dfitted.rx2("AIC"))
@@ -203,5 +213,15 @@ def dlsa(Sig_inv_, beta_, sample_size, intercept=False):
 
     return  pd.DataFrame({"beta_byAIC":beta_byAIC, "beta_byBIC": beta_byBIC})
 
+
+##----------------------------------------------------------------------------------------
+## FINAL OUTPUT
+##----------------------------------------------------------------------------------------
+
 out_dlsa = dlsa(Sig_inv_=Sig_inv_sum, beta_=out_par, sample_size=data_sdf.count(), intercept=False)
 print(out_dlsa)
+
+numpy2ri.activate()
+out_dlsa_r = dlsa_r(Sig_inv_=np.asarray(Sig_inv_sum), beta_=out_par,
+                    sample_size=data_sdf.count(), intercept=False)
+numpy2ri.deactivate()
