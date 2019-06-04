@@ -1,4 +1,4 @@
-# `dlsa`: Distributed Least Squares Approximations
+# `dlsa`: _Distributed Least Squares Approximations_
 
 # Requirements
 
