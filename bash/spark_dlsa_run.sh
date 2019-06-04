@@ -18,6 +18,9 @@ MODEL_FILE=logistic_dlsa
 OUTPATH=~/running/
 # MODEL_FILE=logistic_SGD
 
+# Get current dir path for this script
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
 # for i in 1 {4..100..4} # 1, 5, 10, 15, ... , 100
 # for i in {256..4..-4}
 for i in 4
@@ -30,7 +33,7 @@ do
                   --num-executors ${i}      \
                   --executor-cores ${EC}    \
                   --conf spark.rpc.message.maxSize=1024 \
-                  ../${MODEL_FILE}.py  \
+                  $DIR/../${MODEL_FILE}.py  \
                   > ${OUTPATH}${MODEL_FILE}.NE${i}.EC${EC}.out # 2> ${OUTPATH}${MODEL_FILE}.NE${i}.EC${EC}.log
     toc=`date +%s`
     runtime=$((toc-tic))
