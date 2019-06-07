@@ -14,12 +14,14 @@ from pyspark.sql.functions import pandas_udf, PandasUDFType
 import pandas as pd
 import numpy as np
 
+# import pdb
+
 def dlsa_mapred(model, data_sdf, partition_id):
     '''MapReduce for partitioned data with given model
 
     '''
 
-
+    # pdb.set_trace()
     # partition the data and run the UDF
     mapped_sdf = data_sdf.groupby(partition_id).apply(model)
 
@@ -41,7 +43,7 @@ def dlsa_mapred(model, data_sdf, partition_id):
     p = par_byOLS.size
 
     return pd.DataFrame(np.concatenate((par_byOLS.reshape(p, 1),
-                                        np.asarray(par_byONEHOT).reshape(50, 1),
+                                        np.asarray(par_byONEHOT).reshape(p, 1),
                                         Sig_inv_sum), 1),
                         columns= ["par_byOLS", "par_byONEHOT"] + ["x" + str(i) for i in range(p)])
 

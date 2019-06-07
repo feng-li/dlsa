@@ -24,7 +24,16 @@ spark = pyspark.sql.SparkSession.builder.appName("Spark DLSA App").getOrCreate()
 # Enable Arrow-based columnar data transfers
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
 spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "true")
-spark.sparkContext.addPyFile(os.path.dirname(os.path.abspath(__file__)) + "/models.py")
+
+
+# FIXME: PATH BUG
+spark.sparkContext.addPyFile("/home/lifeng/code/dlsa/models.py")
+
+# BASH compatible
+# spark.sparkContext.addPyFile(os.path.dirname(os.path.abspath(__file__)) + "/models.py")
+
+# Python compatible
+# spark.sparkContext.addPyFile(os.path.dirname(os.path.abspath(__file__)) + "/dlsa/models.py")
 
 # https://docs.azuredatabricks.net/spark/latest/spark-sql/udf-python-pandas.html#setting-arrow-batch-size
 # spark.conf.set("spark.sql.execution.arrow.maxRecordsPerBatch", 10000) # default
@@ -60,7 +69,7 @@ print(spark.conf.get("spark.sql.shuffle.partitions"))
 sample_size=5000
 p=50
 partition_method="systematic"
-partition_num=20
+partition_num=4
 
 data_pdf = simulate_logistic(sample_size, p,
                              partition_method,
@@ -73,6 +82,7 @@ data_sdf = data_sdf.repartition(partition_num, "partition_id")
 ##----------------------------------------------------------------------------------------
 ## LOGISTIC REGRESSION WITH DLSA
 ##----------------------------------------------------------------------------------------
+fit_intercept = False
 
 # Register a user defined function via the Pandas UDF
 schema_beta = StructType(
@@ -83,7 +93,7 @@ schema_beta = StructType(
 
 @pandas_udf(schema_beta, PandasUDFType.GROUPED_MAP)
 def logistic_model_udf(sample_df):
-    return logistic_model(sample_df)
+    return logistic_model(sample_df=sample_df, fit_intercept=fit_intercept)
 
 Sig_inv_beta = dlsa_mapred(logistic_model_udf, data_sdf, "partition_id")
 ##----------------------------------------------------------------------------------------
@@ -95,8 +105,14 @@ out_dlsa = dlsa(Sig_inv_=Sig_inv_beta.iloc[:, 2:],
                 sample_size=data_sdf.count(), intercept=False)
 print(out_dlsa)
 
+
+# Verify
 numpy2ri.activate()
 out_dlsa_r = dlsa_r(Sig_inv_=np.asarray(Sig_inv_beta.iloc[:, 2:]),
                     beta_=np.asarray(Sig_inv_beta["par_byOLS"]),
                     sample_size=data_sdf.count(), intercept=False)
 numpy2ri.deactivate()
+
+# out_dlsa = dlsa(Sig_inv_=Sig_inv,
+#                 beta_=par_byOLS,
+#                 sample_size=data_sdf.count(), intercept=False)

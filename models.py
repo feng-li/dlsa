@@ -41,18 +41,18 @@ def simulate_logistic(sample_size, p, partition_method, partition_num):
 
     return data_pdf
 
-def logistic_model(sample_df):
+def logistic_model(sample_df, fit_intercept=False):
     # run the model on the partitioned data set
     # x_train = sample_df.drop(['label', 'row_id', 'partition_id'], axis=1)
     x_train = sample_df.drop(['partition_id', 'label'], axis=1)
     y_train = sample_df["label"]
-    model = LogisticRegression(solver="lbfgs", fit_intercept=False)
+    model = LogisticRegression(solver="lbfgs", penalty="none", fit_intercept=fit_intercept)
     model.fit(x_train, y_train)
     prob = model.predict_proba(x_train)[:, 0]
     p = model.coef_.size
 
     coef = model.coef_.reshape(p, 1) # p-by-1
-    Sig_inv = x_train.T.dot(np.multiply((prob*(1-prob))[:,None],x_train)) / prob.size # p-by-p
+    Sig_inv = x_train.T.dot(np.multiply((prob*(1-prob))[:,None],x_train)) # p-by-p
     Sig_invMcoef = Sig_inv.dot(coef) # p-by-1
 
     # grad = np.dot(x_train.T, y_train - prob)
