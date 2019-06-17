@@ -57,11 +57,13 @@ def logistic_model(sample_df, fit_intercept=False):
 
     # grad = np.dot(x_train.T, y_train - prob)
 
-    par_id = np.arange(p)
+    par_id = pd.DataFrame(np.arange(p).reshape(p, 1), columns=['par_id'])
+    # par_id = pd.DataFrame(x_train.columns.to_numpy().reshape(p, 1), columns=["par_id"])
 
-    out_np = np.concatenate((coef, Sig_invMcoef, Sig_inv),1) # p-by-(2+p)
-    out_pdf = pd.DataFrame(out_np)
-    out = pd.concat([pd.DataFrame(par_id,columns=["par_id"]), out_pdf],1)
+    out_np = np.concatenate((coef, Sig_invMcoef, Sig_inv),1) # p-by-(3+p)
+    out_pdf = pd.DataFrame(out_np,
+                           columns=pd.Index(["coef", "Sig_invMcoef"] + x_train.columns.tolist()))
+    out = pd.concat([par_id, out_pdf],1)
 
     return out
     # return pd.DataFrame(Sig_inv)
