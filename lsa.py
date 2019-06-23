@@ -3,10 +3,8 @@
 import numpy as np
 from math import log
 
-def backsolvet(r, x):  
+def backsolvet(r, x):
     return(np.linalg.solve(np.triu(r, 0).T,x))
-
-
 
 def updateR(xnew, xold, R = None, eps = np.finfo(np.float).eps):
     norm_xnew = np.sqrt(xnew)
@@ -21,7 +19,7 @@ def updateR(xnew, xold, R = None, eps = np.finfo(np.float).eps):
     else:
         rpp = np.sqrt(rpp)
         if(hasattr(R,"rank")): ### check if R is machine singular
-            rank = getattr(R, "rank") 
+            rank = getattr(R, "rank")
         else:
             rank = np.NAN
         rank = rank + 1
@@ -56,7 +54,7 @@ def delcol(r, z, k):
 				b = r[i,j-1]
 				r[i-1,j-1] = c*a - s *b
 				r[i,j-1] = s*a + c * b
-				j = j+1	
+				j = j+1
 			j=1
 			while(j <= nz):
 				a = z[i-1,j-1]
@@ -78,17 +76,17 @@ def downdateR(R, k):
 
 #####################################################################
 # lars variant for LSA
-# Inuput 
+# Inuput
 # Sigma0: Positive definite p-by-p Hessian Matrix
 # b0: length p vector
 # type:'lar' or 'lasso'
 #####################################################################
 def lars_lsa(Sigma0, b0, intercept = True, type = 'lar', eps=np.finfo(np.float).eps, max_steps = None):
-	"""		
+	"""
 	Compute Least Angle Regression or Lasso path using LARS algorithm [1].
 	"""
 	n = np.shape(Sigma0)[0]
-    
+
     	#handle intercept
 	if(intercept):
 		a11 = Sigma0[0,0]
@@ -101,7 +99,7 @@ def lars_lsa(Sigma0, b0, intercept = True, type = 'lar', eps=np.finfo(np.float).
 		Sigma = Sigma0
 		b = b0
 	Sigma = np.diag(np.abs(b))*Sigma*np.diag(np.abs(b))
-	b = np.sign(b)    
+	b = np.sign(b)
 	nm = np.shape(Sigma)
 	m = nm[1]
 	im = inactive = np.array(range(1,m+1))
@@ -112,7 +110,7 @@ def lars_lsa(Sigma0, b0, intercept = True, type = 'lar', eps=np.finfo(np.float).
 		max_steps = 8*m
 	beta = np.matrix(np.zeros((max_steps + 1, m)))
 	RSS = ssy
-	first = np.zeros(m) 
+	first = np.zeros(m)
 	active = np.array([])
 	drops = False
 	Sign = []
@@ -146,14 +144,14 @@ def lars_lsa(Sigma0, b0, intercept = True, type = 'lar', eps=np.finfo(np.float).
 			action = -dropid
 		Gi1 = np.linalg.solve(np.triu(R,0), backsolvet(R, Sign))
 		A = 1/np.sqrt(sum(Gi1 * Sign))
-		w = A * Gi1        
+		w = A * Gi1
 		if (len(active) >= m):
 			gamhat = Cmax/A
 		else:
 			a = np.array(w * np.delete(Sigma,(np.append(active,ignores)-1).astype(int),axis=1)[active-1,])[0]
 			gam = np.append((Cmax - C)/(A - a), (Cmax + C)/(A + a))
 			gamhat = min(np.append(gam[gam > eps], Cmax/A))
-			
+
 		if(type == "lasso"):
 			dropid = None
 			b1 = beta[k-1, active-1]
@@ -161,14 +159,14 @@ def lars_lsa(Sigma0, b0, intercept = True, type = 'lar', eps=np.finfo(np.float).
 			zmin = np.min(np.append(np.array(z1[z1 > eps])[0], gamhat))
 			if (zmin < gamhat):
 				gamhat = zmin
-				drops = z1 == zmin	
+				drops = z1 == zmin
 			else:
 				drops = False
 
 		beta[k, ] = beta[k-1, ]
 		beta[k, active-1] = beta[k, active-1] + gamhat * w
 		Cvec = Cvec - np.array(gamhat * np.dot(Sigma[:, active-1],w))[0]
-		
+
 		if(type == "lasso" and np.array(drops).any()):
 			dropid = np.array(np.where(drops == True))[0]
 			for id in dropid[::-1]:
@@ -177,36 +175,34 @@ def lars_lsa(Sigma0, b0, intercept = True, type = 'lar', eps=np.finfo(np.float).
 			beta[k, dropid-1] = 0
 			active = active[drops == False]
 			Sign = Sign[drops == False]
-	
+
 		inactive = np.delete(im,active-1)
-		
+
 	beta = beta[np.array(range(k+1)),]
 	dff =  b.reshape(-1,1) - beta.T
-	RSS = np.diag(dff.T*Sigma*dff)	
-		
+	RSS = np.diag(dff.T*Sigma*dff)
+
 	if(intercept):
 		beta = np.multiply(np.repeat(np.matrix(abs(b0[1:n])).T,np.shape(beta)[0],axis=1),beta.T).T
 	else:
 		beta = np.multiply(np.repeat(np.matrix(abs(b0)).T,np.shape(beta)[0],axis=1),beta.T).T
-	
+
 	if (intercept):
 		beta0 = beta0-np.array(a12.T*beta.T)[0]/a11
 	else:
 		beta0 = np.zeros(k+1)
-		
+
 	dof = np.array((abs(beta)>eps).sum(1).T)[0]
 	BIC = RSS+log(n)*dof
 	AIC = RSS+2*dof
 	object = {'AIC': AIC, 'BIC':BIC,'beta':beta, 'beta0':beta0}
-	return(object)	
-		
-		
-A=[1, 1, 1, 1, 1, 1,1, 2 ,3 ,4, 5, 6,1, 3 ,6 ,10 ,15, 21,1 ,4 ,10 ,20 ,35, 56,1 ,5 ,15 ,35 ,70, 126,1, 6 ,21 ,56, 126, 252]		
-A=np.array(A).reshape(6,6)
-A = np.matrix(A)
-y = np.array([1,2,3,4,5,6])
-object = lars_lsa(A,y,type='lasso')
-for i in object:
-    print(i,':','\n',object[i],'\n')
-		
-                    
+	return(object)
+
+
+# A=[1, 1, 1, 1, 1, 1,1, 2 ,3 ,4, 5, 6,1, 3 ,6 ,10 ,15, 21,1 ,4 ,10 ,20 ,35, 56,1 ,5 ,15 ,35 ,70, 126,1, 6 ,21 ,56, 126, 252]
+# A=np.array(A).reshape(6,6)
+# A = np.matrix(A)
+# y = np.array([1,2,3,4,5,6])
+# object = lars_lsa(A,y,type='lasso')
+# for i in object:
+#     print(i,':','\n',object[i],'\n')
