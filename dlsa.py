@@ -11,9 +11,6 @@ from rpy2.robjects import numpy2ri
 from pyspark.sql.types import *
 from pyspark.sql.functions import pandas_udf, PandasUDFType
 
-import pandas as pd
-import numpy as np
-
 # import pdb
 
 def dlsa_mapred(model, data_sdf, partition_id):
