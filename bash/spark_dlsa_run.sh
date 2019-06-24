@@ -23,21 +23,21 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # for i in 1 {4..100..4} # 1, 5, 10, 15, ... , 100
 # for i in {256..4..-4}
-for i in 4
+for executors in 64
 do
     tic=`date +%s`
     PYSPARK_PYTHON=python3 spark-submit \
                   --master yarn  \
                   --driver-memory 50g    \
                   --executor-memory ${EM}   \
-                  --num-executors ${i}      \
+                  --num-executors ${executors}      \
                   --executor-cores ${EC}    \
                   --conf spark.rpc.message.maxSize=1024 \
                   $DIR/../${MODEL_FILE}.py  \
-                  > ${OUTPATH}${MODEL_FILE}.NE${i}.EC${EC}.out # 2> ${OUTPATH}${MODEL_FILE}.NE${i}.EC${EC}.log
+                  > ${OUTPATH}${MODEL_FILE}.NE${executors}.EC${EC}.out # 2> ${OUTPATH}${MODEL_FILE}.NE${i}.EC${EC}.log
     toc=`date +%s`
     runtime=$((toc-tic))
-    echo ${MODEL_FILE}.NE${i}.EC${EC} done, "Time used (s):," $runtime
+    echo ${MODEL_FILE}.NE${executors}.EC${EC} done, "Time used (s):" $runtime
 
 done
 

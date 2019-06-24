@@ -5,7 +5,9 @@ findspark.init("/usr/lib/spark-current")
 
 import pyspark
 
-import os
+import os, sys, time
+
+# from hurry.filesize import size
 
 import numpy as np
 import pandas as pd
@@ -14,6 +16,7 @@ from pyspark.sql.types import *
 from pyspark.sql.functions import pandas_udf, PandasUDFType
 
 from dlsa import dlsa, dlsa_r, dlsa_mapred
+# os.chdir("dlsa") # TEMP code
 from models import simulate_logistic, logistic_model
 from sklearn.linear_model import LogisticRegression
 
@@ -39,7 +42,7 @@ spark.sparkContext.addPyFile("/home/lifeng/code/dlsa/models.py")
 # spark.conf.set("spark.sql.execution.arrow.maxRecordsPerBatch", 10000) # default
 
 # spark.conf.set("spark.sql.shuffle.partitions", 10)
-print(spark.conf.get("spark.sql.shuffle.partitions"))
+# print(spark.conf.get("spark.sql.shuffle.partitions"))
 
 ##----------------------------------------------------------------------------------------
 ## USING REAL DATA
@@ -66,19 +69,39 @@ print(spark.conf.get("spark.sql.shuffle.partitions"))
 ##----------------------------------------------------------------------------------------
 ## USING SIMULATED DATA
 ##----------------------------------------------------------------------------------------
-sample_size=5000
-p=50
+sample_size=10000
+p=200
 partition_method="systematic"
-partition_num=4
+partition_num=10
+
+nsub = 5
 
 data_pdf = simulate_logistic(sample_size, p,
                              partition_method,
                              partition_num)
+memsize0 = sys.getsizeof(data_pdf)
+
 data_sdf = spark.createDataFrame(data_pdf)
 
-# Repartition
-data_sdf = data_sdf.repartition(partition_num, "partition_id")
 
+# Do a loop to union sdf
+for isub in range(nsub - 1):
+
+    data_pdfi = simulate_logistic(sample_size, p,
+                                  partition_method,
+                                  partition_num)
+    data_sdfi = spark.createDataFrame(data_pdfi)
+
+    data_sdf = data_sdf.unionAll(data_sdfi)
+
+
+memsize_total = memsize0 * nsub
+
+# Repartition
+
+tic_repartition = time.clock()
+data_sdf = data_sdf.repartition(partition_num, "partition_id")
+time_repartition = time.clock() - tic_repartition
 ##----------------------------------------------------------------------------------------
 ## LOGISTIC REGRESSION WITH DLSA
 ##----------------------------------------------------------------------------------------
@@ -95,23 +118,39 @@ schema_beta = StructType(
 def logistic_model_udf(sample_df):
     return logistic_model(sample_df=sample_df, fit_intercept=fit_intercept)
 
+tic_mapred = time.clock()
 Sig_inv_beta = dlsa_mapred(logistic_model_udf, data_sdf, "partition_id")
+time_mapred = time.clock() - tic_mapred
 ##----------------------------------------------------------------------------------------
 ## FINAL OUTPUT
 ##----------------------------------------------------------------------------------------
-
+tic_dlsa = time.clock()
 out_dlsa = dlsa(Sig_inv_=Sig_inv_beta.iloc[:, 2:],
                 beta_=Sig_inv_beta["par_byOLS"],
                 sample_size=data_sdf.count(), intercept=False)
+
+time_dlsa = time.clock() - tic_dlsa
+
+##----------------------------------------------------------------------------------------
+## PRINT OUTPUT
+##----------------------------------------------------------------------------------------
+
+out_time = [sample_size * nsub, p, partition_num, memsize_total, time_repartition, time_mapred, time_dlsa]
+# print("Model Summary:")
+print(", ".join(format(x, "10.2f") for x in out_time))
+
 print(out_dlsa)
 
+# save the model to pickle, use pd.read_pickle("test.pkl") to load it.
+# out_dlas.to_pickle("test.pkl")
 
-# Verify
-numpy2ri.activate()
-out_dlsa_r = dlsa_r(Sig_inv_=np.asarray(Sig_inv_beta.iloc[:, 2:]),
-                    beta_=np.asarray(Sig_inv_beta["par_byOLS"]),
-                    sample_size=data_sdf.count(), intercept=False)
-numpy2ri.deactivate()
+
+# Verify with Pure R implementation.
+# numpy2ri.activate()
+# out_dlsa_r = dlsa_r(Sig_inv_=np.asarray(Sig_inv_beta.iloc[:, 2:]),
+#                     beta_=np.asarray(Sig_inv_beta["par_byOLS"]),
+#                     sample_size=data_sdf.count(), intercept=False)
+# numpy2ri.deactivate()
 
 # out_dlsa = dlsa(Sig_inv_=Sig_inv,
 #                 beta_=par_byOLS,
