@@ -25,7 +25,7 @@
 - Zhu, X., Wang, H., & Li, F., (2019) Communication-Efficient Distributed Least Squares Approximation for Shrinkage Estimation. _Working paper_
 
 
-# Know issues
+# Known issues
 
 - Problem running with Spark 2.4.1: Pandas generates null values. See this example
 
