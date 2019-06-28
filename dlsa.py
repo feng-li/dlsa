@@ -27,7 +27,7 @@ def dlsa_mapred(model, data_sdf, partition_id):
     ## MERGE
     ##----------------------------------------------------------------------------------------
     groupped_sdf = mapped_sdf.groupby('par_id')
-    groupped_sdf_sum = groupped_sdf.sum(*mapped_sdf.columns[1:])
+    groupped_sdf_sum = groupped_sdf.sum(*mapped_sdf.columns[1:]) #TODO: Error with Python < 3.7 for > 255 arguments.
     groupped_pdf_sum = groupped_sdf_sum.toPandas().sort_values("par_id")
 
     Sig_invMcoef_sum = groupped_pdf_sum.iloc[:,2]
