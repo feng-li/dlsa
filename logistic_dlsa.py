@@ -70,20 +70,23 @@ spark.sparkContext.addPyFile("/home/lifeng/code/dlsa/models.py")
 ## USING SIMULATED DATA
 ##----------------------------------------------------------------------------------------
 # Basic settings
-nsub = 4 # Sequential loop to avoid Spark OUT_OF_MEM problem
-sample_size_sub = 1000
-p = 10
+nsub = 1 # Sequential loop to avoid Spark OUT_OF_MEM problem
+sample_size_sub = 10000
+p = 500
+partition_num_sub = 200
 partition_method = "systematic"
-partition_num_sub = 4
 
 for isub in range(nsub):
 
-    data_pdf_i = simulate_logistic(sample_size_sub, p,
-                                  partition_method,
-                                   partition_num_sub)
-    data_sdf_i = spark.createDataFrame(data_pdf_i)
+    # Read or load data chunks into pandas
 
-    # data_sdf = data_sdf.unionAll(data_sdfi)
+    if isub == 0: # To test performance, we only simulate one subset of data and replicated it.
+        data_pdf_i = simulate_logistic(sample_size_sub, p,
+                                       partition_method,
+                                       partition_num_sub)
+
+    # Convert Pandas DataFrame to Spark DataFrame
+    data_sdf_i = spark.createDataFrame(data_pdf_i)
 
     # Repartition
 
