@@ -2,13 +2,15 @@
 
 # Requirements
 
-- `Spark >= 2.3`
-- `Python >=3.6`
-  - `sklearn`
-  - `rpy2`
+- `Spark >= 2.3.1`
+- `Python >= 3.7.0`
+  - `scikit-learn >= 0.21.2`
+  - `rpy2 >= 3.0.4`
 
 - `R >= 3.5`
   - `lars`
+
+  See [`setup.py`]("./setup.py") for detailed requirements.
 
 # Run the code with cluster
 ```sh
