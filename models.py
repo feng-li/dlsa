@@ -6,9 +6,6 @@ def simulate_logistic(sample_size, p, partition_method, partition_num):
     '''Simulate data based on logistic model
 
     '''
-
-
-
     ## Simulate Data
     n = sample_size
     p1 = int(p * 0.4)
@@ -42,7 +39,10 @@ def simulate_logistic(sample_size, p, partition_method, partition_num):
     return data_pdf
 
 def logistic_model(sample_df, fit_intercept=False):
-    # run the model on the partitioned data set
+    '''Run logistic model on the partitioned data set
+
+    '''
+
     # x_train = sample_df.drop(['label', 'row_id', 'partition_id'], axis=1)
     x_train = sample_df.drop(['partition_id', 'label'], axis=1)
     y_train = sample_df["label"]
@@ -57,6 +57,7 @@ def logistic_model(sample_df, fit_intercept=False):
 
     # grad = np.dot(x_train.T, y_train - prob)
 
+    # Assign par_id
     par_id = pd.DataFrame(np.arange(p).reshape(p, 1), columns=['par_id'])
     # par_id = pd.DataFrame(x_train.columns.to_numpy().reshape(p, 1), columns=["par_id"])
 

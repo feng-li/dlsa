@@ -13,21 +13,16 @@ from pyspark.sql.functions import pandas_udf, PandasUDFType
 
 # import pdb
 
-def dlsa_mapred(model, data_sdf, partition_id):
+def dlsa_mapred(model_mapped_sdf):
     '''MapReduce for partitioned data with given model
 
     '''
-
-    # pdb.set_trace()
-    # partition the data and run the UDF
-    mapped_sdf = data_sdf.groupby(partition_id).apply(model)
-
-    # mapped_pdf = mapped_sdf.toPandas()
+    # mapped_pdf = model_mapped_sdf.toPandas()
     ##----------------------------------------------------------------------------------------
     ## MERGE
     ##----------------------------------------------------------------------------------------
-    groupped_sdf = mapped_sdf.groupby('par_id')
-    groupped_sdf_sum = groupped_sdf.sum(*mapped_sdf.columns[1:]) #TODO: Error with Python < 3.7 for > 255 arguments.
+    groupped_sdf = model_mapped_sdf.groupby('par_id')
+    groupped_sdf_sum = groupped_sdf.sum(*model_mapped_sdf.columns[1:]) #TODO: Error with Python < 3.7 for > 255 arguments.
     groupped_pdf_sum = groupped_sdf_sum.toPandas().sort_values("par_id")
 
     Sig_invMcoef_sum = groupped_pdf_sum.iloc[:,2]
@@ -35,8 +30,7 @@ def dlsa_mapred(model, data_sdf, partition_id):
 
     par_byOLS = np.linalg.solve(Sig_inv_sum, Sig_invMcoef_sum)
 
-    par_byONEHOT = groupped_pdf_sum['sum(coef)'] / data_sdf.rdd.getNumPartitions()
-    # out_par_onehot = groupped_pdf_sum['sum(coef)'] / partition_num
+    par_byONEHOT = groupped_pdf_sum['sum(coef)'] / model_mapped_sdf.rdd.getNumPartitions()
     p = par_byOLS.size
 
     return pd.DataFrame(np.concatenate((par_byOLS.reshape(p, 1),
