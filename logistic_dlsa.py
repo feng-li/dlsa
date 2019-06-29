@@ -69,77 +69,99 @@ spark.sparkContext.addPyFile("/home/lifeng/code/dlsa/models.py")
 ##----------------------------------------------------------------------------------------
 ## USING SIMULATED DATA
 ##----------------------------------------------------------------------------------------
-sample_size=10000
-p=200
-partition_method="systematic"
-partition_num=10
+# Basic settings
+nsub = 4 # Sequential loop to avoid Spark OUT_OF_MEM problem
+sample_size_sub = 1000
+p = 10
+partition_method = "systematic"
+partition_num_sub = 4
 
-nsub = 5
+for isub in range(nsub):
 
-data_pdf = simulate_logistic(sample_size, p,
-                             partition_method,
-                             partition_num)
-memsize0 = sys.getsizeof(data_pdf)
-
-data_sdf = spark.createDataFrame(data_pdf)
-
-
-# Do a loop to union sdf
-for isub in range(nsub - 1):
-
-    data_pdfi = simulate_logistic(sample_size, p,
+    data_pdf_i = simulate_logistic(sample_size_sub, p,
                                   partition_method,
-                                  partition_num)
-    data_sdfi = spark.createDataFrame(data_pdfi)
+                                   partition_num_sub)
+    data_sdf_i = spark.createDataFrame(data_pdf_i)
 
-    data_sdf = data_sdf.unionAll(data_sdfi)
+    # data_sdf = data_sdf.unionAll(data_sdfi)
 
+    # Repartition
 
-memsize_total = memsize0 * nsub
+    tic_repartition = time.perf_counter()
+    data_sdf_i = data_sdf_i.repartition(partition_num_sub, "partition_id")
+    time_repartition_sub = time.perf_counter() - tic_repartition
 
-# Repartition
+    ##----------------------------------------------------------------------------------------
+    ## PARTITIONED LOGISTIC REGRESSION
+    ##----------------------------------------------------------------------------------------
+    fit_intercept = False
 
-tic_repartition = time.clock()
-data_sdf = data_sdf.repartition(partition_num, "partition_id")
-time_repartition = time.clock() - tic_repartition
-##----------------------------------------------------------------------------------------
-## LOGISTIC REGRESSION WITH DLSA
-##----------------------------------------------------------------------------------------
-fit_intercept = False
+    # Register a user defined function via the Pandas UDF
+    schema_beta = StructType(
+        [StructField('par_id', IntegerType(), True),
+         StructField('coef', DoubleType(), True),
+         StructField('Sig_invMcoef', DoubleType(), True)]
+        + data_sdf_i.schema.fields[2:])
 
-# Register a user defined function via the Pandas UDF
-schema_beta = StructType(
-    [StructField('par_id', IntegerType(), True),
-     StructField('coef', DoubleType(), True),
-     StructField('Sig_invMcoef', DoubleType(), True)]
-    + data_sdf.schema.fields[2:])
+    @pandas_udf(schema_beta, PandasUDFType.GROUPED_MAP)
+    def logistic_model_udf(sample_df):
+        return logistic_model(sample_df=sample_df, fit_intercept=fit_intercept)
 
-@pandas_udf(schema_beta, PandasUDFType.GROUPED_MAP)
-def logistic_model_udf(sample_df):
-    return logistic_model(sample_df=sample_df, fit_intercept=fit_intercept)
+    # pdb.set_trace()
+    # partition the data and run the UDF
+    model_mapped_sdf_i = data_sdf_i.groupby("partition_id").apply(logistic_model_udf)
 
-tic_mapred = time.clock()
-Sig_inv_beta = dlsa_mapred(logistic_model_udf, data_sdf, "partition_id")
-time_mapred = time.clock() - tic_mapred
+    # Union all sequential mapped results.
+    if isub == 0:
+        model_mapped_sdf = model_mapped_sdf_i
+        memsize_sub = sys.getsizeof(data_pdf_i)
+    else:
+        model_mapped_sdf = model_mapped_sdf.unionAll(model_mapped_sdf_i)
+
 ##----------------------------------------------------------------------------------------
 ## FINAL OUTPUT
 ##----------------------------------------------------------------------------------------
-tic_dlsa = time.clock()
+# sample_size=model_mapped_sdf.count()
+sample_size = sample_size_sub * nsub
+
+# Obtain Sig_inv and beta
+tic_mapred = time.perf_counter()
+Sig_inv_beta = dlsa_mapred(model_mapped_sdf)
+time_mapred = time.perf_counter() - tic_mapred
+
+tic_dlsa = time.perf_counter()
 out_dlsa = dlsa(Sig_inv_=Sig_inv_beta.iloc[:, 2:],
                 beta_=Sig_inv_beta["par_byOLS"],
-                sample_size=data_sdf.count(), intercept=False)
+                sample_size=sample_size,
+                intercept=fit_intercept)
 
-time_dlsa = time.clock() - tic_dlsa
+time_dlsa = time.perf_counter() - tic_dlsa
 
 ##----------------------------------------------------------------------------------------
 ## PRINT OUTPUT
 ##----------------------------------------------------------------------------------------
+memsize_total = memsize_sub * nsub
+partition_num = partition_num_sub * nsub
+time_repartition = time_repartition_sub * nsub
+sample_size_per_partition = sample_size / partition_num
 
-out_time = [sample_size * nsub, p, partition_num, memsize_total, time_repartition, time_mapred, time_dlsa]
-# print("Model Summary:")
-print(", ".join(format(x, "10.2f") for x in out_time))
 
-print(out_dlsa)
+out_time = pd.DataFrame(
+    {"sample_size": sample_size,
+     "sample_size_sub": sample_size_sub,
+     "sample_size_per_partition": sample_size_per_partition,
+     "p": p,
+     "partition_num": partition_num,
+     "memsize_total": memsize_total,
+     "time_repartition": time_repartition,
+     "time_mapred": time_mapred,
+     "time_dlsa": time_dlsa}, index=[0])
+
+# print(", ".join(format(x, "10.2f") for x in out_time))
+print("Model Summary:\n")
+print(out_time.to_string())
+print("\nDLSA Coefficients:\n")
+print(out_dlsa.to_string())
 
 # save the model to pickle, use pd.read_pickle("test.pkl") to load it.
 # out_dlas.to_pickle("test.pkl")
