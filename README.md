@@ -1,4 +1,4 @@
-# `dlsa`: _Distributed Least Squares Approximations_
+# `dlsa`: Distributed Least Squares Approximation implemented with Apache Spark
 
 # Requirements
 
@@ -24,8 +24,7 @@
 
 # References
 
-- Zhu, X., Wang, H., & Li, F., (2019) Communication-Efficient Distributed Least Squares Approximation for Shrinkage Estimation. _Working paper_
-
+- Zhu, X., Wang, H., & Li, F., (2019) Least Squares Approximation for a Distributed System. _Working Paper_.
 
 # Known issues
 
