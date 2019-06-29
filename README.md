@@ -10,7 +10,7 @@
 - `R >= 3.5`
   - `lars`
 
-  See [`setup.py`]("setup.py") for detailed requirements.
+  See [`setup.py`](setup.py) for detailed requirements.
 
 # Run the code with cluster
 ```sh
