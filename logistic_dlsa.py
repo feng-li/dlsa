@@ -70,10 +70,10 @@ spark.sparkContext.addPyFile("/home/lifeng/code/dlsa/models.py")
 ## USING SIMULATED DATA
 ##----------------------------------------------------------------------------------------
 # Basic settings
-nsub = 1 # Sequential loop to avoid Spark OUT_OF_MEM problem
-sample_size_sub = 10000
+nsub = 100 # Sequential loop to avoid Spark OUT_OF_MEM problem
+sample_size_sub = 100000
 p = 500
-partition_num_sub = 200
+partition_num_sub = 10
 partition_method = "systematic"
 
 for isub in range(nsub):
