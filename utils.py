@@ -3,11 +3,6 @@
 import pandas as pd
 import sys
 
-
-
-path = '/home/lifeng/running/data/1987.csv.bz2'
-
-
 def clean_airlinedata(file_path):
     '''Function to clean airline data from
 
