@@ -22,15 +22,36 @@ def clean_airlinedata(file_path):
 
     return out_pdf
 
-def add_partition_id(pdf, partition_num, partition_method):
-    '''Add arbitrary index for partition
+def add_partition_id_pdf(data_pdf, partition_num, partition_method):
+    '''Add arbitrary index to Pandas DataFrame for partition
     '''
 
-    nrow = pdf.shape[0]
+    nrow = data_pdf.shape[0]
 
     if partition_method == "systematic":
         partition_id = pd.RangeIndex(nrow)
-        out = pd.concat([pd.DataFrame(partition_id, columns='partition_id'), pdf], 1)
-
+        out = pd.concat([pd.DataFrame(partition_id, columns='partition_id'), data_pdf], 1)
 
     return out
+
+
+def add_partition_id_sdf(data_sdf, partition_num, partition_method):
+    ''''Add arbitrary index to Spark DataFrame for partition
+
+    assign a row ID and a partition ID using Spark SQL
+    FIXME: WARN WindowExec: No Partition Defined for Window operation! Moving all data to a
+    single partition, this can cause serious performance
+    degradation. https://databricks.com/blog/2015/07/15/introducing-window-functions-in-spark-sql.html
+
+    '''
+    data_sdf.createOrReplaceTempView("data_sdf")
+    data_sdf = spark.sql("""
+    select *, row_id%20 as partition_id
+    from (
+    select *, row_number() over (order by rand()) as row_id
+    from data_sdf
+    )
+    """)
+
+
+    return data_sdf
