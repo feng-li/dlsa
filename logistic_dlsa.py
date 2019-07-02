@@ -18,6 +18,8 @@ from pyspark.sql.functions import pandas_udf, PandasUDFType
 from dlsa import dlsa, dlsa_r, dlsa_mapred
 # os.chdir("dlsa") # TEMP code
 from models import simulate_logistic, logistic_model
+from utils import clean_airlinedata, insert_partition_id_pdf
+
 from sklearn.linear_model import LogisticRegression
 
 from rpy2.robjects import numpy2ri
@@ -31,6 +33,7 @@ spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "true")
 
 # FIXME: PATH BUG
 spark.sparkContext.addPyFile("/home/lifeng/code/dlsa/models.py")
+spark.sparkContext.addPyFile("/home/lifeng/code/dlsa/utils.py")
 
 # BASH compatible
 # spark.sparkContext.addPyFile(os.path.dirname(os.path.abspath(__file__)) + "/models.py")
@@ -45,59 +48,69 @@ spark.sparkContext.addPyFile("/home/lifeng/code/dlsa/models.py")
 # print(spark.conf.get("spark.sql.shuffle.partitions"))
 
 ##----------------------------------------------------------------------------------------
-## USING REAL DATA
+## SETTINGS
 ##----------------------------------------------------------------------------------------
-# load the CSV as a Spark data frame
-# data_df = pd.read_csv("../data/games-expand.csv")
-# data_sdf = spark.createDataFrame(pandas_df)
 
-# FIXME: Real data should add an arbitrary partition id.
-
-# assign a row ID and a partition ID using Spark SQL
-# FIXME: WARN WindowExec: No Partition Defined for Window operation! Moving all data to a
-# single partition, this can cause serious performance
-# degradation. https://databricks.com/blog/2015/07/15/introducing-window-functions-in-spark-sql.html
-# data_sdf.createOrReplaceTempView("data_sdf")
-# data_sdf = spark.sql("""
-# select *, row_id%20 as partition_id
-# from (
-#   select *, row_number() over (order by rand()) as row_id
-#   from data_sdf
-# )
-# """)
-
-##----------------------------------------------------------------------------------------
-## USING SIMULATED DATA
-##----------------------------------------------------------------------------------------
-# Basic settings
-nsub = 100 # Sequential loop to avoid Spark OUT_OF_MEM problem
-sample_size_sub = 100000
-p = 500
-partition_num_sub = 10
+# General  settings
+#-----------------------------------------------------------------------------------------
+using_simulated_data = False
 partition_method = "systematic"
 
+# Settings for using simulated data
+#-----------------------------------------------------------------------------------------
+nsub = 100 # Sequential loop to avoid Spark OUT_OF_MEM problem
+partition_num_sub = 20
+
+sample_size_sub = 100000
+p = 200
+Y_name = "label"
+
+#  Settings for using real data
+#-----------------------------------------------------------------------------------------
+file_path = ['~/running/data/' + str(year) + '.csv.bz2' for year in range(1987, 2007 + 1)]
+nsub = len(file_path)
+Y_name = "ArrDelay"
+sample_size_sub = []
+
+# Model settings
+#-----------------------------------------------------------------------------------------
+fit_intercept = False
+
+# Read or load data chunks into pandas
+#-----------------------------------------------------------------------------------------
 for isub in range(nsub):
-
-    # Read or load data chunks into pandas
-
-    if isub == 0: # To test performance, we only simulate one subset of data and replicated it.
-        data_pdf_i = simulate_logistic(sample_size_sub, p,
+    if using_simulated_data && isub == 0:
+        # To test performance, we only simulate one subset of data and replicated it.
+        data_pdf_i = simulate_logistic(sample_size_sub[0], p,
                                        partition_method,
                                        partition_num_sub)
 
+        sample_size_sub.append(sample_size_sub[0])
+
+    else: # Read real data
+        data_pdf_i0 = clean_airlinedata(os.path.expanduser(file_path[isub]))
+        data_pdf_i = insert_partition_id_pdf(data_pdf_i0, partition_num_sub, partition_method)
+
+        sample_size_sub.append(data_pdf_i.shape[0])
+
+##----------------------------------------------------------------------------------------
+## MODEL FITTING ON PARTITIONED DATA
+##----------------------------------------------------------------------------------------
     # Convert Pandas DataFrame to Spark DataFrame
     data_sdf_i = spark.createDataFrame(data_pdf_i)
 
     # Repartition
+    if isub == 0:
+        time_repartition_sub = []
 
     tic_repartition = time.perf_counter()
     data_sdf_i = data_sdf_i.repartition(partition_num_sub, "partition_id")
-    time_repartition_sub = time.perf_counter() - tic_repartition
+
+    time_repartition_sub.append(time.perf_counter() - tic_repartition)
 
     ##----------------------------------------------------------------------------------------
     ## PARTITIONED LOGISTIC REGRESSION
     ##----------------------------------------------------------------------------------------
-    fit_intercept = False
 
     # Register a user defined function via the Pandas UDF
     schema_beta = StructType(
@@ -108,7 +121,7 @@ for isub in range(nsub):
 
     @pandas_udf(schema_beta, PandasUDFType.GROUPED_MAP)
     def logistic_model_udf(sample_df):
-        return logistic_model(sample_df=sample_df, fit_intercept=fit_intercept)
+        return logistic_model(sample_df=sample_df, Y_name=Y_name, fit_intercept=fit_intercept)
 
     # pdb.set_trace()
     # partition the data and run the UDF
@@ -122,10 +135,10 @@ for isub in range(nsub):
         model_mapped_sdf = model_mapped_sdf.unionAll(model_mapped_sdf_i)
 
 ##----------------------------------------------------------------------------------------
-## FINAL OUTPUT
+## AGGREGATING THE MODEL ESTIMATES
 ##----------------------------------------------------------------------------------------
 # sample_size=model_mapped_sdf.count()
-sample_size = sample_size_sub * nsub
+sample_size = sum(sample_size_sub)
 
 # Obtain Sig_inv and beta
 tic_mapred = time.perf_counter()
@@ -145,7 +158,7 @@ time_dlsa = time.perf_counter() - tic_dlsa
 ##----------------------------------------------------------------------------------------
 memsize_total = memsize_sub * nsub
 partition_num = partition_num_sub * nsub
-time_repartition = time_repartition_sub * nsub
+time_repartition = sum(time_repartition_sub)
 sample_size_per_partition = sample_size / partition_num
 
 

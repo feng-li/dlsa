@@ -22,8 +22,9 @@ def clean_airlinedata(file_path):
 
     return out_pdf
 
-def add_partition_id_pdf(data_pdf, partition_num, partition_method):
-    '''Add arbitrary index to Pandas DataFrame for partition
+def insert_partition_id_pdf(data_pdf, partition_num, partition_method):
+    '''Insert arbitrary index to Pandas DataFrame for partition
+
     '''
 
     nrow = data_pdf.shape[0]
@@ -35,8 +36,8 @@ def add_partition_id_pdf(data_pdf, partition_num, partition_method):
     return out
 
 
-def add_partition_id_sdf(data_sdf, partition_num, partition_method):
-    ''''Add arbitrary index to Spark DataFrame for partition
+def insert_partition_id_sdf(data_sdf, partition_num, partition_method):
+    ''''Insert arbitrary index to Spark DataFrame for partition
 
     assign a row ID and a partition ID using Spark SQL
     FIXME: WARN WindowExec: No Partition Defined for Window operation! Moving all data to a
