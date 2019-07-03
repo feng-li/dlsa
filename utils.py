@@ -30,7 +30,7 @@ def insert_partition_id_pdf(data_pdf, partition_num, partition_method):
     nrow = data_pdf.shape[0]
 
     if partition_method == "systematic":
-        partition_id = pd.DataFrame(pd.RangeIndex(nrow) % partition_num，columns=['partition_id'])
+        partition_id = pd.DataFrame(pd.RangeIndex(nrow) % partition_num, columns=['partition_id'])
         out = pd.concat([partition_id, data_pdf], axis=1, join_axes=[partition_id.index])
 
     return out
