@@ -8,6 +8,7 @@ import pyspark
 import os, sys, time
 
 # from hurry.filesize import size
+from math import ceil
 
 import numpy as np
 import pandas as pd
@@ -60,8 +61,8 @@ partition_method = "systematic"
 #-----------------------------------------------------------------------------------------
 nsub = 100 # Sequential loop to avoid Spark OUT_OF_MEM problem
 partition_num_sub = 20
-
 sample_size_sub = 100000
+sample_size_per_partition = sample_size_sub / partition_num_sub
 p = 200
 Y_name = "label"
 
@@ -69,9 +70,12 @@ Y_name = "label"
 #-----------------------------------------------------------------------------------------
 file_path = ['~/running/data/' + str(year) + '.csv.bz2' for year in range(1987, 2007 + 1)]
 nsub = len(file_path)
+partition_num_sub = []
+sample_size_per_partition = 5000
+
 Y_name = "ArrDelay"
 sample_size_sub = []
-
+memsize_sub = []
 # Model settings
 #-----------------------------------------------------------------------------------------
 fit_intercept = False
@@ -79,20 +83,25 @@ fit_intercept = False
 # Read or load data chunks into pandas
 #-----------------------------------------------------------------------------------------
 for isub in range(nsub):
-    if using_simulated_data && isub == 0:
-        # To test performance, we only simulate one subset of data and replicated it.
-        data_pdf_i = simulate_logistic(sample_size_sub[0], p,
-                                       partition_method,
-                                       partition_num_sub)
-
-        sample_size_sub.append(sample_size_sub[0])
+    if using_simulated_data:
+        if isub == 0:
+            # To test performance, we only simulate one subset of data and replicated it.
+            data_pdf_i = simulate_logistic(sample_size_sub[0], p,
+                                           partition_method,
+                                           partition_num_sub)
+            memsize_sub0 = sys.getsizeof(data_pdf_i)
+        else:
+            sample_size_sub.append(sample_size_sub[0])
+            memsize_sub.append(memsize_sub0)
+            partition_num_sub.append(partition_num_sub[0])
 
     else: # Read real data
         data_pdf_i0 = clean_airlinedata(os.path.expanduser(file_path[isub]))
-        data_pdf_i = insert_partition_id_pdf(data_pdf_i0, partition_num_sub, partition_method)
+        partition_num_sub.append(ceil(data_pdf_i.shape[0] / sample_size_per_partition))
+        data_pdf_i = insert_partition_id_pdf(data_pdf_i0, partition_num_sub[isub], partition_method)
 
         sample_size_sub.append(data_pdf_i.shape[0])
-
+        memsize_sub.append(sys.getsizeof(data_pdf_i))
 ##----------------------------------------------------------------------------------------
 ## MODEL FITTING ON PARTITIONED DATA
 ##----------------------------------------------------------------------------------------
@@ -104,7 +113,7 @@ for isub in range(nsub):
         time_repartition_sub = []
 
     tic_repartition = time.perf_counter()
-    data_sdf_i = data_sdf_i.repartition(partition_num_sub, "partition_id")
+    data_sdf_i = data_sdf_i.repartition(partition_num_sub[isub], "partition_id")
 
     time_repartition_sub.append(time.perf_counter() - tic_repartition)
 
@@ -137,6 +146,9 @@ for isub in range(nsub):
 ##----------------------------------------------------------------------------------------
 ## AGGREGATING THE MODEL ESTIMATES
 ##----------------------------------------------------------------------------------------
+if using_simulated_data == False:
+    p = data_pdf_i0.shape[1]
+
 # sample_size=model_mapped_sdf.count()
 sample_size = sum(sample_size_sub)
 
@@ -156,7 +168,7 @@ time_dlsa = time.perf_counter() - tic_dlsa
 ##----------------------------------------------------------------------------------------
 ## PRINT OUTPUT
 ##----------------------------------------------------------------------------------------
-memsize_total = memsize_sub * nsub
+memsize_total = sum(memsize_sub)
 partition_num = partition_num_sub * nsub
 time_repartition = sum(time_repartition_sub)
 sample_size_per_partition = sample_size / partition_num
