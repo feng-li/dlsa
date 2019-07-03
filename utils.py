@@ -19,7 +19,7 @@ def clean_airlinedata(file_path):
     X_with_dummies.drop('ArrDelay',axis = 1)
     Y = pdf['ArrDelay']>0 # # FIXME: 'Cancelled' 'Diverted' could be used for multilevel logistic
 
-    out_pdf = pd.concat([Y, X_continuous, X_dummies], axis=1)
+    out_pdf = pd.concat([Y, X_with_dummies], axis=1)
 
     return out_pdf
 
