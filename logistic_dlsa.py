@@ -17,6 +17,7 @@ from pyspark.sql.types import *
 from pyspark.sql.functions import pandas_udf, PandasUDFType
 
 from dlsa import dlsa, dlsa_r, dlsa_mapred
+
 # os.chdir("dlsa") # TEMP code
 from models import simulate_logistic, logistic_model
 from utils import clean_airlinedata, insert_partition_id_pdf
@@ -59,23 +60,26 @@ partition_method = "systematic"
 
 # Settings for using simulated data
 #-----------------------------------------------------------------------------------------
-nsub = 100 # Sequential loop to avoid Spark OUT_OF_MEM problem
-partition_num_sub = 20
-sample_size_sub = 100000
-sample_size_per_partition = sample_size_sub / partition_num_sub
-p = 200
-Y_name = "label"
+if using_simulated_data:
 
+    nsub = 100 # Sequential loop to avoid Spark OUT_OF_MEM problem
+    partition_num_sub = 20
+    sample_size_sub = 100000
+    sample_size_per_partition = sample_size_sub / partition_num_sub
+    p = 200
+    Y_name = "label"
+
+else:
 #  Settings for using real data
 #-----------------------------------------------------------------------------------------
-file_path = ['~/running/data/' + str(year) + '.csv.bz2' for year in range(1987, 2007 + 1)]
-nsub = len(file_path)
-partition_num_sub = []
-sample_size_per_partition = 5000
+    file_path = ['~/running/data/' + str(year) + '.csv.bz2' for year in range(1987, 2007 + 1)]
+    nsub = len(file_path)
+    partition_num_sub = []
+    sample_size_per_partition = 5000
 
-Y_name = "ArrDelay"
-sample_size_sub = []
-memsize_sub = []
+    Y_name = "ArrDelay"
+    sample_size_sub = []
+    memsize_sub = []
 
 # Model settings
 #-----------------------------------------------------------------------------------------

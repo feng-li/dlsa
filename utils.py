@@ -10,16 +10,16 @@ def clean_airlinedata(file_path):
     http://stat-computing.org/dataexpo/2009/the-data.html
     '''
 
-    pdf0 = pd.read_csv(file_path, usecols = [0,1,2,3,4,5,6,7,8,9,11,12,13,14,15,16,17,18,21,23])
+    pdf0 = pd.read_csv(file_path, usecols = [0,1,2,3,4,5,6,7,8,9,11,12,14,15,16,17,18,21,23])
     pdf = pdf0.dropna()
 
     # X_continuous = pdf[['Year', 'DayofMonth', 'DepTime', 'CRSDepTime', 'ArrTime', 'CRSArrTime',
     #                     'ActualElapsedTime', 'CRSElapsedTime', 'DepDelay', 'Distance']]
-    X_with_dummies = pd.get_dummies(pdf, columns = ['Month', 'UniqueCarrier', 'Origin', 'Dest'])
-    X_with_dummies.drop('ArrDelay',axis = 1)
+    X_with_dummies = pd.get_dummies(pdf, columns = ['Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'])
+    X = X_with_dummies.drop('ArrDelay',axis = 1)
     Y = pdf['ArrDelay']>0 # # FIXME: 'Cancelled' 'Diverted' could be used for multilevel logistic
 
-    out_pdf = pd.concat([Y, X_with_dummies], axis=1)
+    out_pdf = pd.concat([Y, X], axis=1)
 
     return out_pdf
 
