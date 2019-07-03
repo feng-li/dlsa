@@ -76,6 +76,7 @@ sample_size_per_partition = 5000
 Y_name = "ArrDelay"
 sample_size_sub = []
 memsize_sub = []
+
 # Model settings
 #-----------------------------------------------------------------------------------------
 fit_intercept = False
@@ -97,7 +98,7 @@ for isub in range(nsub):
 
     else: # Read real data
         data_pdf_i0 = clean_airlinedata(os.path.expanduser(file_path[isub]))
-        partition_num_sub.append(ceil(data_pdf_i.shape[0] / sample_size_per_partition))
+        partition_num_sub.append(ceil(data_pdf_i0.shape[0] / sample_size_per_partition))
         data_pdf_i = insert_partition_id_pdf(data_pdf_i0, partition_num_sub[isub], partition_method)
 
         sample_size_sub.append(data_pdf_i.shape[0])
@@ -169,14 +170,12 @@ time_dlsa = time.perf_counter() - tic_dlsa
 ## PRINT OUTPUT
 ##----------------------------------------------------------------------------------------
 memsize_total = sum(memsize_sub)
-partition_num = partition_num_sub * nsub
+partition_num = sum(partition_num_sub)
 time_repartition = sum(time_repartition_sub)
-sample_size_per_partition = sample_size / partition_num
-
+# sample_size_per_partition = sample_size / partition_num
 
 out_time = pd.DataFrame(
     {"sample_size": sample_size,
-     "sample_size_sub": sample_size_sub,
      "sample_size_per_partition": sample_size_per_partition,
      "p": p,
      "partition_num": partition_num,

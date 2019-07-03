@@ -10,7 +10,7 @@ def clean_airlinedata(file_path):
     http://stat-computing.org/dataexpo/2009/the-data.html
     '''
 
-    pdf0 = pd.read_csv(path, usecols = [0,1,2,3,4,5,6,7,8,9,11,12,14,15,16,17,18,21,23])
+    pdf0 = pd.read_csv(file_path, usecols = [0,1,2,3,4,5,6,7,8,9,11,12,14,15,16,17,18,21,23])
     pdf = pdf0.dropna()
 
     X_continuous = pdf[['Year', 'DayofMonth', 'DepTime', 'CRSDepTime', 'ArrTime', 'CRSArrTime',
@@ -18,7 +18,7 @@ def clean_airlinedata(file_path):
     X_dummies = pd.get_dummies(pdf, columns = ['Month', 'UniqueCarrier', 'Origin', 'Dest'])
     Y = pdf['ArrDelay']>0 # # FIXME: 'Cancelled' 'Diverted' could be used for multilevel logistic
 
-    out_pdf = pd.concat([Y, X_continuous, X_dummies], 1)
+    out_pdf = pd.concat([Y, X_continuous, X_dummies], axis=1)
 
     return out_pdf
 
@@ -30,8 +30,8 @@ def insert_partition_id_pdf(data_pdf, partition_num, partition_method):
     nrow = data_pdf.shape[0]
 
     if partition_method == "systematic":
-        partition_id = pd.RangeIndex(nrow)
-        out = pd.concat([pd.DataFrame(partition_id, columns='partition_id'), data_pdf], 1)
+        partition_id = pd.DataFrame(pd.RangeIndex(nrow) % partition_num，columns=['partition_id'])
+        out = pd.concat([partition_id, data_pdf], axis=1, join_axes=[partition_id.index])
 
     return out
 
