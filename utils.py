@@ -22,7 +22,7 @@ def clean_airlinedata(file_path):
     # FIXME: 'Cancelled' 'Diverted' could be used for multilevel logistic
     Y = (pdf['ArrDelay']>0).astype(int)
 
-    out_pdf = pd.concat([Y, X], axis=1).reset_index()
+    out_pdf = pd.concat([Y, X], axis=1).reset_index(drop=True)
 
     return out_pdf
 
@@ -63,3 +63,17 @@ def insert_partition_id_sdf(data_sdf, partition_num, partition_method):
 
 
     return data_sdf
+
+
+def convert_schema(schema_fields=None, fields_index=None, out_type=None):
+    '''Convert schema type for large data frame
+
+    '''
+    if fields_index == None:
+        fields_index = range(len(schema_fields))
+
+    for i in fields_index:
+        schema_fields[i].dataType = out_type
+
+
+    return schema_fields
