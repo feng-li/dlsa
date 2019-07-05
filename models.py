@@ -44,6 +44,8 @@ def logistic_model(sample_df, Y_name, fit_intercept=False):
     '''
 
     # x_train = sample_df.drop(['label', 'row_id', 'partition_id'], axis=1)
+    # sample_df = samle_df.dropna()
+
     x_train = sample_df.drop(['partition_id', Y_name], axis=1)
     y_train = sample_df[Y_name]
     model = LogisticRegression(solver="lbfgs", penalty="none", fit_intercept=fit_intercept)

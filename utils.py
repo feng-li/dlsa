@@ -13,20 +13,24 @@ def clean_airlinedata(file_path):
     pdf0 = pd.read_csv(file_path, usecols = [1,2,3,4,5,6,7,8,9,11,12,14,15,16,17,18,21,23])
     pdf = pdf0.dropna()
 
-    # X_continuous = pdf[['Year', 'DayofMonth', 'DepTime', 'CRSDepTime', 'ArrTime', 'CRSArrTime',
-    #                     'ActualElapsedTime', 'CRSElapsedTime', 'DepDelay', 'Distance']]
     X_with_dummies = pd.get_dummies(data=pdf,
                                     columns=['Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'],
                                     sparse=True)
     X = X_with_dummies.drop('ArrDelay',axis = 1)
-    Y = pdf['ArrDelay']>0 # FIXME: 'Cancelled' 'Diverted' could be used for multilevel logistic
 
-    out_pdf = pd.concat([Y, X], axis=1)
+    # Obtain labels
+    # FIXME: 'Cancelled' 'Diverted' could be used for multilevel logistic
+    Y = (pdf['ArrDelay']>0).astype(int)
+
+    out_pdf = pd.concat([Y, X], axis=1).reset_index()
 
     return out_pdf
 
 def insert_partition_id_pdf(data_pdf, partition_num, partition_method):
     '''Insert arbitrary index to Pandas DataFrame for partition
+
+    NOTICE: data_pdf should have natural numbers (0,1,2...) as index. Otherwise this will
+    mismatch the target and produce NaNs.
 
     '''
 
