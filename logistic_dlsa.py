@@ -106,7 +106,6 @@ for isub in range(nsub):
 
     else: # Read real data
         data_pdf_i0 = clean_airlinedata(os.path.expanduser(file_path[isub]))
-        partition_num_sub = [1]
         # partition_num_sub.append(ceil(data_pdf_i0.shape[0] / sample_size_per_partition))
         data_pdf_i = insert_partition_id_pdf(data_pdf_i0, partition_num_sub[isub],
                                              partition_method)
