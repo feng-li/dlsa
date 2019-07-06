@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
+import warnings
 
 def simulate_logistic(sample_size, p, partition_method, partition_num):
     '''Simulate data based on logistic model
@@ -48,7 +49,7 @@ def logistic_model(sample_df, Y_name, fit_intercept=False):
 
     x_train = sample_df.drop(['partition_id', Y_name], axis=1)
     y_train = sample_df[Y_name]
-    model = LogisticRegression(solver="lbfgs", penalty="none", fit_intercept=fit_intercept)
+    model = LogisticRegression(solver="lbfgs", penalty="none", fit_intercept=fit_intercept, max_iter=500)
     model.fit(x_train, y_train)
     prob = model.predict_proba(x_train)[:, 0]
     p = model.coef_.size
@@ -67,6 +68,9 @@ def logistic_model(sample_df, Y_name, fit_intercept=False):
     out_pdf = pd.DataFrame(out_np,
                            columns=pd.Index(["coef", "Sig_invMcoef"] + x_train.columns.tolist()))
     out = pd.concat([par_id, out_pdf],1)
+
+    if out.isna().values.any():
+        warnings.warn("NAs appear in the final output")
 
     return out
     # return pd.DataFrame(Sig_inv)

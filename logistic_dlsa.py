@@ -20,7 +20,7 @@ from dlsa import dlsa, dlsa_r, dlsa_mapred
 
 # os.chdir("dlsa") # TEMP code
 from models import simulate_logistic, logistic_model
-from utils import clean_airlinedata, insert_partition_id_pdf
+from utils import clean_airlinedata, insert_partition_id_pdf, convert_schema
 
 from sklearn.linear_model import LogisticRegression
 
@@ -30,6 +30,8 @@ spark = pyspark.sql.SparkSession.builder.appName("Spark DLSA App").getOrCreate()
 
 # Enable Arrow-based columnar data transfers
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
+spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "true")
+spark.conf.set("spark.sql.execution.arrow.enabled", "false")
 spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "true")
 
 
@@ -72,10 +74,12 @@ if using_simulated_data:
 else:
 #  Settings for using real data
 #-----------------------------------------------------------------------------------------
-    file_path = ['~/running/data/' + str(year) + '.csv.bz2' for year in range(1987, 2007 + 1)]
+    # file_path = ['~/running/data/' + str(year) + '.csv.bz2' for year in range(1987, 2008 + 1)]
+    file_path = ['~/running/data/' + str(year) + '.csv.bz2' for year in range(1987, 1987 + 1)]
+
     nsub = len(file_path)
     partition_num_sub = []
-    sample_size_per_partition = 5000
+    sample_size_per_partition = 50000
 
     Y_name = "ArrDelay"
     sample_size_sub = []
@@ -102,8 +106,10 @@ for isub in range(nsub):
 
     else: # Read real data
         data_pdf_i0 = clean_airlinedata(os.path.expanduser(file_path[isub]))
-        partition_num_sub.append(ceil(data_pdf_i0.shape[0] / sample_size_per_partition))
-        data_pdf_i = insert_partition_id_pdf(data_pdf_i0, partition_num_sub[isub], partition_method)
+        partition_num_sub = [1]
+        # partition_num_sub.append(ceil(data_pdf_i0.shape[0] / sample_size_per_partition))
+        data_pdf_i = insert_partition_id_pdf(data_pdf_i0, partition_num_sub[isub],
+                                             partition_method)
 
         sample_size_sub.append(data_pdf_i.shape[0])
         memsize_sub.append(sys.getsizeof(data_pdf_i))
@@ -131,7 +137,7 @@ for isub in range(nsub):
         [StructField('par_id', IntegerType(), True),
          StructField('coef', DoubleType(), True),
          StructField('Sig_invMcoef', DoubleType(), True)]
-        + data_sdf_i.schema.fields[2:])
+        + convert_schema(data_sdf_i.schema.fields[2:],  out_type=DoubleType()))
 
     @pandas_udf(schema_beta, PandasUDFType.GROUPED_MAP)
     def logistic_model_udf(sample_df):

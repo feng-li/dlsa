@@ -22,21 +22,22 @@ def dlsa_mapred(model_mapped_sdf):
     ## MERGE
     ##----------------------------------------------------------------------------------------
     groupped_sdf = model_mapped_sdf.groupby('par_id')
-    groupped_sdf_sum = groupped_sdf.sum(*model_mapped_sdf.columns[1:]) #TODO: Error with Python < 3.7 for > 255 arguments.
+    groupped_sdf_sum = groupped_sdf.sum(*model_mapped_sdf.columns[1:]) #TODO: Error with Python < 3.7 for > 255 arguments. Location 0 is 'par_id'
     groupped_pdf_sum = groupped_sdf_sum.toPandas().sort_values("par_id")
 
     Sig_invMcoef_sum = groupped_pdf_sum.iloc[:,2]
     Sig_inv_sum = groupped_pdf_sum.iloc[:,3:]
 
-    par_byOLS = np.linalg.solve(Sig_inv_sum, Sig_invMcoef_sum)
+    # par_byOLS = np.linalg.solve(Sig_inv_sum, Sig_invMcoef_sum)
+    par_byOLS = np.linalg.lstsq(Sig_inv_sum, Sig_invMcoef_sum, rcond=None)[0] # least-squares solution
 
     par_byONEHOT = groupped_pdf_sum['sum(coef)'] / model_mapped_sdf.rdd.getNumPartitions()
-    p = par_byOLS.size
+    p = len(Sig_invMcoef_sum)
 
     return pd.DataFrame(np.concatenate((par_byOLS.reshape(p, 1),
                                         np.asarray(par_byONEHOT).reshape(p, 1),
                                         Sig_inv_sum), 1),
-                        columns= ["par_byOLS", "par_byONEHOT"] + ["x" + str(i) for i in range(p)])
+                        columns= ["par_byOLS", "par_byONEHOT"] + model_mapped_sdf.columns[3:])
 
 
 
