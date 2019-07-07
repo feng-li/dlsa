@@ -13,7 +13,7 @@ MODEL_DESCRIPTION=$1
 
 # Tiny executors: one executor per core
 EC=1
-EM=20g
+EM=10g
 
 # MODEL_FILE=logistic_spark
 MODEL_FILE=logistic_dlsa
@@ -25,7 +25,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # for i in 1 {4..100..4} # 1, 5, 10, 15, ... , 100
 # for i in {256..4..-4}
-for executors in 1
+for executors in 6
 do
     tic=`date +%s`
     PYSPARK_PYTHON=python3 spark-submit \
@@ -36,7 +36,7 @@ do
                   --executor-cores ${EC}    \
                   --conf spark.rpc.message.maxSize=1024 \
                   $DIR/../${MODEL_FILE}.py  \
-                  > ${OUTPATH}${MODEL_DESCRIPTION}_${MODEL_FILE}.NE${executors}.EC${EC}.out # 2> ${OUTPATH}${MODEL_DESCRIPTION}_${MODEL_FILE}.NE${i}.EC${EC}.log
+                  > ${OUTPATH}${MODEL_DESCRIPTION}_${MODEL_FILE}.NE${executors}.EC${EC}.out 2> ${OUTPATH}${MODEL_DESCRIPTION}_${MODEL_FILE}.NE${executors}.EC${EC}.log
     toc=`date +%s`
     runtime=$((toc-tic))
     echo ${MODEL_FILE}.NE${executors}.EC${EC} done, "Time used (s):" $runtime
