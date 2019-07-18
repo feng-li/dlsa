@@ -14,18 +14,19 @@ from utils import clean_airlinedata
 # from linereader import dopen
 
 
-tic0 = time.clock()
+tic0 = time.perf_counter()
 ##----------------------------------------------------------------------------------------
 ## Logistic Regression with Single machine SGD
 ##----------------------------------------------------------------------------------------
 
-file_path = ['~/running/data_raw/' + str(year) + '.csv' for year in range(1987, 2007 + 1)]
-# file_path = ['~/running/data/' + str(year) + '.csv.bz2' for year in range(1987, 1987 + 1)]
+# file_path = ['~/running/data_raw/' + str(year) + '.csv' for year in range(1987, 2007 + 1)]
+file_path = ['~/running/data/' + str(year) + '.csv.bz2' for year in range(1987, 1987 + 1)]
 # file_name = '~/running/data_raw/allfile.csv'
 
 model_saved_file_name = '~/running/single_sgd_finalized_model.pkl'
 
 nBatches = 1000
+nEpochs = 5
 Y_name = 'ArrDelay'
 fit_intercept = False
 verbose = True
@@ -33,29 +34,31 @@ penalty = 'l2'
 
 SGD_model = SGDClassifier(fit_intercept=fit_intercept, verbose=verbose, penalty=penalty)
 
-for iFile in range(len(file_path)):
+for iEpoch in range(nEpochs):
 
-    sample_df = clean_airlinedata(os.path.expanduser(file_path[iFile]))
+    for iFile in range(len(file_path)):
 
-    sample_df_size = sample_df.shape[0]
+        sample_df = clean_airlinedata(os.path.expanduser(file_path[iFile]))
 
-    total_idx = list(range(sample_df_size))
-    random.shuffle(total_idx)
+        sample_df_size = sample_df.shape[0]
 
-    x_train = sample_df.drop([Y_name], axis=1)
-    y_train = sample_df[Y_name]
-    classes=np.unique(y_train)
+        total_idx = list(range(sample_df_size))
+        random.shuffle(total_idx)
 
-    for iBatch in range(nBatches):
+        x_train = sample_df.drop([Y_name], axis=1)
+        y_train = sample_df[Y_name]
+        classes=np.unique(y_train)
 
-        idx_curr_batch = total_idx[round(sample_df_size / nBatches * iBatch):
-                                   round(sample_df_size / nBatches * (iBatch + 1))]
+        for iBatch in range(nBatches):
+
+            idx_curr_batch = total_idx[round(sample_df_size / nBatches * iBatch):
+                                       round(sample_df_size / nBatches * (iBatch + 1))]
 
 
-        SGD_model.partial_fit(x_train.iloc[idx_curr_batch, ],
-                              y_train.iloc[idx_curr_batch, ], classes=classes)
+            SGD_model.partial_fit(x_train.iloc[idx_curr_batch, ],
+                                  y_train.iloc[idx_curr_batch, ], classes=classes)
 
-    print(print(file_path[iFile] + '\tprocessed'))
+        print(iEpoch + '/' + nEpochs + " Epochs:\t" + file_path[iFile] + '\tprocessed')
 
 
 # tic = time.clock()
@@ -74,8 +77,7 @@ for iFile in range(len(file_path)):
 # print(lrModel.intercept)
 # print(lrModel.coefficients)
 
-time_wallclock = time.clock() - tic0
-
+time_wallclock = time.perf_counter() - tic0
 
 pickle.dump(SGD_model, open(os.path.expanduser(model_saved_file_name), 'wb'))
 # out = [sample_size, p, memsize, time_parallelize, time_clusterrun, time_wallclock]
