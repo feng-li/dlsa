@@ -58,7 +58,7 @@ for iEpoch in range(nEpochs):
             SGD_model.partial_fit(x_train.iloc[idx_curr_batch, ],
                                   y_train.iloc[idx_curr_batch, ], classes=classes)
 
-        print(iEpoch + '/' + nEpochs + " Epochs:\t" + file_path[iFile] + '\tprocessed')
+        print(str(iEpoch) + '/' + str(nEpochs) + " Epochs:\t" + file_path[iFile] + '\tprocessed.')
 
 
 # tic = time.clock()
@@ -79,6 +79,11 @@ for iEpoch in range(nEpochs):
 
 time_wallclock = time.perf_counter() - tic0
 
+## Save model as file
 pickle.dump(SGD_model, open(os.path.expanduser(model_saved_file_name), 'wb'))
 # out = [sample_size, p, memsize, time_parallelize, time_clusterrun, time_wallclock]
 # print(", ".join(format(x, "10.4f") for x in out))
+
+## Load model
+# with open(os.path.expanduser(model_saved_file_name), "rb") as f:
+#     dump = pickle.load(f)
