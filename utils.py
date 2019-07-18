@@ -10,7 +10,8 @@ def clean_airlinedata(file_path):
     http://stat-computing.org/dataexpo/2009/the-data.html
     '''
 
-    pdf0 = pd.read_csv(file_path, usecols = [1,2,3,4,5,6,7,8,9,11,12,14,15,16,17,18,21,23])
+    pdf0 = pd.read_csv(file_path, error_bad_lines=False,
+                       usecols = [1,2,3,4,5,6,7,8,9,11,12,14,15,16,17,18,21,23])
     pdf = pdf0.dropna()
 
     X_with_dummies = pd.get_dummies(data=pdf,
