@@ -29,11 +29,13 @@ model_saved_file_name = '~/running/single_sgd_finalized_model.pkl'
 nBatches = 1000
 nEpochs = 5
 Y_name = 'ArrDelay'
+penalty = 'l2'
 fit_intercept = False
 verbose = False
-penalty = 'l2'
+n_jobs = -1 # Use all processors
 
-SGD_model = SGDClassifier(fit_intercept=fit_intercept, verbose=verbose, penalty=penalty)
+SGD_model = SGDClassifier(fit_intercept=fit_intercept, verbose=verbose,
+                          penalty=penalty, n_jobs=n_jobs)
 
 for iEpoch in range(nEpochs):
 
@@ -65,7 +67,7 @@ for iEpoch in range(nEpochs):
             SGD_model.partial_fit(x_train.iloc[idx_curr_batch, ],
                                   y_train.iloc[idx_curr_batch, ], classes=classes)
 
-        print(str(iEpoch) + '/' + str(nEpochs) + " Epochs:\t"
+        print(str(iEpoch + 1) + '/' + str(nEpochs) + " Epochs:\t"
               + file_path[file_number] + '\tprocessed.')
 
 
