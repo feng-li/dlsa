@@ -16,10 +16,22 @@ do
     #     lines=2
     # fi
 
-    awk -F, 'NR >= 2' ${SOURCE}${i}.csv >> ${SOURCE}allfile.csv
+    awk -F, 'NR >= 2' ${SOURCE}${i}.csv >> ${SOURCE}allfile_sorted_no_head.csv
     echo $i is processed
 done
 
+# Shuffle lines
+shuf allfile_ordered_no_head.csv > allfile_shuffle_no_head.csv
 
-# Insert a header
-# sed -i '1 i\Year,Month,DayofMonth,DayOfWeek,DepTime,CRSDepTime,ArrTime,CRSArrTime,UniqueCarrier,FlightNum,TailNum,ActualElapsedTime,CRSElapsedTime,AirTime,ArrDelay,DepDelay,Origin,Dest,Distance,TaxiIn,TaxiOut,Cancelled,CancellationCode,Diverted,CarrierDelay,WeatherDelay,NASDelay,SecurityDelay,LateAircraftDelay' allfile.csv
+# Split the big file into small files
+split -n 21 --additional-suffix=.csv allfile_shuffle_no_head.csv
+
+# Insert a header and compress to bz2 format
+for file in xa*.csv
+do
+
+    sed -i '1 i\Year,Month,DayofMonth,DayOfWeek,DepTime,CRSDepTime,ArrTime,CRSArrTime,UniqueCarrier,FlightNum,TailNum,ActualElapsedTime,CRSElapsedTime,AirTime,ArrDelay,DepDelay,Origin,Dest,Distance,TaxiIn,TaxiOut,Cancelled,CancellationCode,Diverted,CarrierDelay,WeatherDelay,NASDelay,SecurityDelay,LateAircraftDelay' $file
+
+    bzip2 $file
+
+done

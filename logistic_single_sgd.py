@@ -12,6 +12,7 @@ from sklearn.linear_model import SGDClassifier
 
 from utils import clean_airlinedata
 # from linereader import dopen
+import string
 
 
 tic0 = time.perf_counter()
@@ -20,8 +21,8 @@ tic0 = time.perf_counter()
 ##----------------------------------------------------------------------------------------
 
 # file_path = ['~/running/data_raw/' + str(year) + '.csv' for year in range(1987, 2007 + 1)]
-file_path = ['~/running/data/' + str(year) + '.csv.bz2' for year in range(1987, 1987 + 1)]
-# file_name = '~/running/data_raw/allfile.csv'
+# file_path = ['~/running/data/' + str(year) + '.csv.bz2' for year in range(1987, 1987 + 1)]
+file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in string.ascii_lowercase[0:21]]
 
 model_saved_file_name = '~/running/single_sgd_finalized_model.pkl'
 
@@ -29,16 +30,22 @@ nBatches = 1000
 nEpochs = 5
 Y_name = 'ArrDelay'
 fit_intercept = False
-verbose = True
+verbose = False
 penalty = 'l2'
 
 SGD_model = SGDClassifier(fit_intercept=fit_intercept, verbose=verbose, penalty=penalty)
 
 for iEpoch in range(nEpochs):
 
-    for iFile in range(len(file_path)):
+    for file_number in range(len(file_path)):
 
-        sample_df = clean_airlinedata(os.path.expanduser(file_path[iFile]))
+        sample_df0 = clean_airlinedata(os.path.expanduser(file_path[file_number]))
+
+        # Use persist columns for dummies
+        if iEpoch == 0 & file_number == 0:
+            persist_columns = sample_df0.columns
+
+        sample_df = sample_df0[persist_columns]
 
         sample_df_size = sample_df.shape[0]
 
@@ -58,7 +65,8 @@ for iEpoch in range(nEpochs):
             SGD_model.partial_fit(x_train.iloc[idx_curr_batch, ],
                                   y_train.iloc[idx_curr_batch, ], classes=classes)
 
-        print(str(iEpoch) + '/' + str(nEpochs) + " Epochs:\t" + file_path[iFile] + '\tprocessed.')
+        print(str(iEpoch) + '/' + str(nEpochs) + " Epochs:\t"
+              + file_path[file_number] + '\tprocessed.')
 
 
 # tic = time.clock()
