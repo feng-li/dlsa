@@ -20,10 +20,11 @@ tic0 = time.perf_counter()
 ## Logistic Regression with Single machine SGD
 ##----------------------------------------------------------------------------------------
 
-# file_path = ['~/running/data_raw/' + str(year) + '.csv' for year in range(1987, 2007 + 1)]
-# file_path = ['~/running/data/' + str(year) + '.csv.bz2' for year in range(1987, 1987 + 1)]
+# file_path = ['~/running/data/' + str(year) + '.csv.bz2' for year in range(1987, 2008 + 1)]
+# file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in string.ascii_lowercase[1:21]]
 file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in string.ascii_lowercase[0:21]]
-model_saved_file_name = '~/running/single_sgd_finalized_model.pkl'
+
+model_saved_file_name = '~/running/single_sgd_finalized_model_' + 'time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())' + '.pkl'
 dummy_set = "~/running/data_raw/dummy_set.pkl"
 nBatches = 1000
 nEpochs = 5
@@ -60,7 +61,7 @@ for iEpoch in range(nEpochs):
         # Create an full-column empty DataFrame and resize current subset
         edf = pd.DataFrame(columns=list(set(dummy_column_names) - set(sample_df0.columns)))# empty df
         sample_df = sample_df0.append(edf, sort=True)
-        sample_df.fillna(0, inplace = True) # Replace append generated NaN with 0
+        sample_df.fillna(0, inplace = True) # Replace append-generated NaN with 0
 
 
         sample_df_size = sample_df.shape[0]

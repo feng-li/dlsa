@@ -22,14 +22,22 @@ def clean_airlinedata(file_path):
     '''
 
     pdf0 = pd.read_csv(file_path, error_bad_lines=False,
-                       # usecols = [1,2,3,4,5,6,7,8,9,11,12,14,15,16,17,18,21,23],
                        usecols = [1,2,3,4,5,6,7,8,11,13,14,15,16,17,18],
-                       dtype={'Year': 'Int64', 'Month': 'Int64', 'DayofMonth': 'Int64',
-                              'DayOfWeek': 'Int64', 'DepTime': np.float64,
-                              'CRSDepTime': np.float64, 'ArrTime': np.float64,
-                              'CRSArrTime': np.float64, 'UniqueCarrier': 'str',
-                              'ActualElapsedTime': np.float64, 'Dest': 'str',
-                              'Distance': np.float64})
+                       engine='c', # The C engine is faster
+                       dtype={'Year': 'Int64',
+                              'Month': 'Int64',
+                              'DayofMonth': 'Int64',
+                              'DayOfWeek': 'Int64',
+                              'DepTime': np.float64,
+                              'CRSDepTime': np.float64,
+                              'ArrTime': np.float64,
+                              'CRSArrTime': np.float64,
+                              'UniqueCarrier': 'str',
+                              'ActualElapsedTime': np.float64,
+                              'Origin': 'str',
+                              'Dest': 'str',
+                              'Distance': np.float64}
+    )
     pdf = pdf0.dropna()
 
     X_with_dummies = pd.get_dummies(data=pdf,

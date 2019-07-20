@@ -26,8 +26,8 @@ awk -F ','  '{printf ("%s,%s,%s,%s,%s,%s\n", $1,$2,$4,$9,$17,$18)}' allfile_orde
 # Shuffle lines
 shuf allfile_ordered_no_head.csv > allfile_shuffle_no_head.csv
 
-# Split the big file into small files
-split -n 21 --additional-suffix=.csv allfile_shuffle_no_head.csv
+# Split the big file into small files (l will not break lines)
+split -n l/21 --additional-suffix=.csv allfile_shuffle_no_head.csv
 
 # Insert a header and compress to bz2 format
 for file in xa*.csv
