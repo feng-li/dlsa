@@ -53,6 +53,30 @@ def clean_airlinedata(file_path, fit_intercept):
 
     return out_pdf
 
+
+def get_dummy_keys(dummy_set, fit_intercept):
+    ''''Make a `distributed` dummy key list to create a complete data matrix
+
+    dummy_set should be a previous saved pickle file containing all possible dummy set.
+
+    fit_intercept, If True, first level is dropped to produce k-1 dummy_keys
+
+    '''
+
+    with open(os.path.expanduser(dummy_set), "rb") as f:
+        column_dumps = pickle.load(f)
+
+    dummy_keys = list(column_dumps.keys())
+    dummy_column_names = []
+
+    for i in dummy_keys:
+        used_dummy_idx = list(column_dumps[i])[fit_intercept:] # if drop first level
+        dummy_column_names.extend([i + '_' + str(x) for x in used_dummy_idx])
+
+    return dummy_column_names
+
+
+
 def insert_partition_id_pdf(data_pdf, partition_num, partition_method):
     '''Insert arbitrary index to Pandas DataFrame for partition
 

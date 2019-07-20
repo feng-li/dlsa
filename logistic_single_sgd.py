@@ -11,7 +11,7 @@ import pickle
 
 from sklearn.linear_model import SGDClassifier
 
-from utils import clean_airlinedata
+from utils import clean_airlinedata, get_dummy_keys
 # from linereader import dopen
 import string
 
@@ -43,16 +43,7 @@ SGD_model = SGDClassifier(fit_intercept=fit_intercept, verbose=verbose,
 # numeric_column_names = ['ArrDelay', 'DayofMonth', 'DepTime', 'CRSDepTime', 'ArrTime', 'CRSArrTime',
 #                         'ActualElapsedTime', 'AirTime', 'DepDelay', 'Distance']
 
-# Make a `distributed` dummy key list to create a complete data matrix
-with open(os.path.expanduser(dummy_set), "rb") as f:
-    column_dumps = pickle.load(f)
-
-dummy_keys = list(column_dumps.keys())
-dummy_column_names = []
-for i in dummy_keys:
-    used_dummy_idx = list(column_dumps[i])[fit_intercept:] # if drop first level
-    dummy_column_names.extend([i + '_' + str(x) for x in used_dummy_idx])
-
+dummy_column_names = get_dummy_keys(dummy_set, fit_intercept)
 
 # The main SGD looping
 loop_counter = 0
