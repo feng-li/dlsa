@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 
 import pandas as pd
+import numpy as np
 import sys
 
 def clean_airlinedata(file_path):
@@ -8,14 +9,31 @@ def clean_airlinedata(file_path):
 
 
     http://stat-computing.org/dataexpo/2009/the-data.html
+    0Year,1Month,2DayofMonth,3DayOfWeek,4DepTime,5CRSDepTime,6ArrTime,7CRSArrTime,8UniqueCarrier,
+    9FlightNum, 10TailNum,11ActualElapsedTime,12CRSElapsedTime,13AirTime,14ArrDelay,15DepDelay,
+    16Origin,17Dest,18Distance,19TaxiIn, 20TaxiOut,21Cancelled,22CancellationCode,23Diverted,
+    24CarrierDelay,25WeatherDelay,26NASDelay,27SecurityDelay,28LateAircraftDela
+
+    Variables `10TailNum，22CancellationCode，24CarrierDelay，25WeatherDelay，26NASDelay，
+    27SecurityDelay，28LateAircraftDelay` containing too many NAs. Deleted.
+
+    13AirTime=ActualElapsedTime-TaxiIn-TaxiOut, TaxiIn and TaxiOut only available since 1995.
+
     '''
 
     pdf0 = pd.read_csv(file_path, error_bad_lines=False,
-                       usecols = [1,2,3,4,5,6,7,8,9,11,12,14,15,16,17,18,21,23])
+                       # usecols = [1,2,3,4,5,6,7,8,9,11,12,14,15,16,17,18,21,23],
+                       usecols = [1,2,3,4,5,6,7,8,11,13,14,15,16,17,18],
+                       dtype={'Year': 'Int64', 'Month': 'Int64', 'DayofMonth': 'Int64',
+                              'DayOfWeek': 'Int64', 'DepTime': np.float64,
+                              'CRSDepTime': np.float64, 'ArrTime': np.float64,
+                              'CRSArrTime': np.float64, 'UniqueCarrier': 'str',
+                              'ActualElapsedTime': np.float64, 'Dest': 'str',
+                              'Distance': np.float64})
     pdf = pdf0.dropna()
 
     X_with_dummies = pd.get_dummies(data=pdf,
-                                    columns=['Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'],
+                                    columns=['Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'], # 2, 4, 9, 17, 18
                                     sparse=True)
     X = X_with_dummies.drop('ArrDelay',axis = 1)
 

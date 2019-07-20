@@ -20,6 +20,9 @@ do
     echo $i is processed
 done
 
+# Extract dummy columns
+awk -F ','  '{printf ("%s,%s,%s,%s,%s,%s\n", $1,$2,$4,$9,$17,$18)}' allfile_ordered_no_head.csv | xz > dummies.xz
+
 # Shuffle lines
 shuf allfile_ordered_no_head.csv > allfile_shuffle_no_head.csv
 
