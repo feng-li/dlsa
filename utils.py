@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 import sys
 
-def clean_airlinedata(file_path):
+def clean_airlinedata(file_path, fit_intercept):
     '''Function to clean airline data from
 
 
@@ -40,7 +40,7 @@ def clean_airlinedata(file_path):
     )
     pdf = pdf0.dropna()
 
-    X_with_dummies = pd.get_dummies(data=pdf,
+    X_with_dummies = pd.get_dummies(data=pdf, drop_first=fit_intercept,
                                     columns=['Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'], # 2, 4, 9, 17, 18
                                     sparse=True)
     X = X_with_dummies.drop('ArrDelay',axis = 1)

@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 import time
+from datetime import timedelta
 import sys, os
 
 import random
@@ -29,13 +30,14 @@ dummy_set = "~/running/data_raw/dummy_set.pkl"
 nBatches = 1000
 nEpochs = 5
 Y_name = 'ArrDelay'
+loss="log"
 penalty = 'none'
-fit_intercept = False
+fit_intercept = True
 verbose = True
 n_jobs = -1 # Use all processors
 
 SGD_model = SGDClassifier(fit_intercept=fit_intercept, verbose=verbose,
-                          penalty=penalty, n_jobs=n_jobs)
+                          penalty=penalty, loss=loss, n_jobs=n_jobs)
 
 
 # numeric_column_names = ['ArrDelay', 'DayofMonth', 'DepTime', 'CRSDepTime', 'ArrTime', 'CRSArrTime',
@@ -48,15 +50,18 @@ with open(os.path.expanduser(dummy_set), "rb") as f:
 dummy_keys = list(column_dumps.keys())
 dummy_column_names = []
 for i in dummy_keys:
-    dummy_column_names.extend([i + '_' + str(x) for x in column_dumps[i]])
+    used_dummy_idx = list(column_dumps[i])[fit_intercept:] # if drop first level
+    dummy_column_names.extend([i + '_' + str(x) for x in used_dummy_idx])
 
 
 # The main SGD looping
+loop_counter = 0
 for iEpoch in range(nEpochs):
 
     for file_number in range(len(file_path)):
 
-        sample_df0 = clean_airlinedata(os.path.expanduser(file_path[file_number]))
+        sample_df0 = clean_airlinedata(os.path.expanduser(file_path[file_number]),
+                                       fit_intercept=fit_intercept)
 
         # Create an full-column empty DataFrame and resize current subset
         edf = pd.DataFrame(columns=list(set(dummy_column_names) - set(sample_df0.columns)))# empty df
@@ -81,8 +86,17 @@ for iEpoch in range(nEpochs):
             SGD_model.partial_fit(x_train.iloc[idx_curr_batch, ],
                                   y_train.iloc[idx_curr_batch, ], classes=classes)
 
+
         print(str(iEpoch + 1) + '/' + str(nEpochs) + " Epochs:\t"
-              + file_path[file_number] + '\tprocessed.')
+              + file_path[file_number] + '\tprocessed.\t'
+              + str(file_number + 1) + '/' + str(len(file_path))
+              + ' files done in this epoch.')
+
+        loop_counter += 1
+        time_elapsed = time.perf_counter() - tic0
+        time_to_go = timedelta(seconds=time_elapsed / loop_counter * (len(file_path) * nEpochs - loop_counter))
+        print('Time elapsed:\t' + str(timedelta(seconds=time_elapsed))
+              + '.\tTime to go:\t' + str(time_to_go))
 
 
 # tic = time.clock()
