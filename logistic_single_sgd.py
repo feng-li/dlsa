@@ -25,7 +25,7 @@ tic0 = time.perf_counter()
 # file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in string.ascii_lowercase[1:21]]
 file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in string.ascii_lowercase[0:21]]
 
-model_saved_file_name = '~/running/single_sgd_finalized_model_' + 'time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())' + '.pkl'
+model_saved_file_name = '~/running/single_sgd_finalized_model_' + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime() + '.pkl'
 dummy_set = "~/running/data_raw/dummy_set.pkl"
 nBatches = 1000
 nEpochs = 5
