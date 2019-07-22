@@ -1,4 +1,4 @@
-#! /usr/bin/env
+#! /usr/bin/env python3
 
 import pickle
 import pandas as pd
