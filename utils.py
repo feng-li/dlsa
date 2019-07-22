@@ -2,9 +2,9 @@
 
 import pandas as pd
 import numpy as np
-import sys
+import sys, os, pickle
 
-def clean_airlinedata(file_path, fit_intercept):
+def clean_airlinedata(file_path, fit_intercept, sparse=True):
     '''Function to clean airline data from
 
 
@@ -42,7 +42,7 @@ def clean_airlinedata(file_path, fit_intercept):
 
     X_with_dummies = pd.get_dummies(data=pdf, drop_first=fit_intercept,
                                     columns=['Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'], # 2, 4, 9, 17, 18
-                                    sparse=True)
+                                    sparse=sparse)
     X = X_with_dummies.drop('ArrDelay',axis = 1)
 
     # Obtain labels
@@ -54,27 +54,35 @@ def clean_airlinedata(file_path, fit_intercept):
     return out_pdf
 
 
-def get_dummy_keys(dummy_set, fit_intercept):
-    ''''Make a `distributed` dummy key list to create a complete data matrix
+def clean_airlinedata_sdf():
 
-    dummy_set should be a previous saved pickle file containing all possible dummy set.
+    usecols = ['Month', 'DayofMonth', 'DayOfWeek', 'DepTime', 'CRSDepTime',
+               'ArrTime', 'CRSArrTime', 'UniqueCarrier', 'ActualElapsedTime', 'AirTime',
+               'ArrDelay', 'DepDelay', 'Origin', 'Dest', 'Distance']
 
-    fit_intercept, If True, first level is dropped to produce k-1 dummy_keys
+    sdfraw0=spark.read.csv(file_path_hdfs[file_no_i],header=True)
+    sdf0 = sdfraw0.select(usecols)
+    sdf0.dropna()
 
-    '''
 
-    with open(os.path.expanduser(dummy_set), "rb") as f:
-        column_dumps = pickle.load(f)
+    data_sdf.createOrReplaceTempView("data_sdf")
+    data_sdf = spark.sql(
+        """
+        select *, row_id%20 as partition_id
+        from (
+        select *, row_number() over (order by rand()) as row_id
+        from data_sdf
+        )
+        """
+    )
 
-    dummy_keys = list(column_dumps.keys())
-    dummy_column_names = []
 
-    for i in dummy_keys:
-        used_dummy_idx = list(column_dumps[i])[fit_intercept:] # if drop first level
-        dummy_column_names.extend([i + '_' + str(x) for x in used_dummy_idx])
 
-    return dummy_column_names
+    from pyspark.sql import functions
 
+
+
+    return False
 
 
 def insert_partition_id_pdf(data_pdf, partition_num, partition_method):
