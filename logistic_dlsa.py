@@ -20,11 +20,11 @@ from pyspark.sql.types import *
 from pyspark.sql import functions
 from pyspark.sql.functions import pandas_udf, PandasUDFType,  monotonically_increasing_id
 
-from dlsa import dlsa, dlsa_r, dlsa_mapred
+from  dlsa import dlsa, dlsa_r, dlsa_mapred
 
 # os.chdir("dlsa") # TEMP code
-from models import simulate_logistic, logistic_model
-from utils import clean_airlinedata, insert_partition_id_pdf, convert_schema
+from  models import simulate_logistic, logistic_model
+from  utils import clean_airlinedata, insert_partition_id_pdf, convert_schema
 
 from sklearn.linear_model import LogisticRegression
 
@@ -77,6 +77,7 @@ if using_data in ["simulated_pdf"]:
     sample_size_per_partition = sample_size_sub / partition_num_sub
     p = 200
     Y_name = "label"
+    dummy_info = []
     convert_dummies = []
 
 elif  using_data in ["real_pdf", "real_hdfs"]:
@@ -85,9 +86,43 @@ elif  using_data in ["real_pdf", "real_hdfs"]:
     # file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in string.ascii_lowercase[0:21]] # local file
 
     file_path = ['/running/data_raw/xa' + str(letter) + '.csv' for letter in string.ascii_lowercase[0:1]] # HDFS file
-    usecols = ['Month', 'DayofMonth', 'DayOfWeek', 'DepTime', 'CRSDepTime',
-               'ArrTime', 'CRSArrTime', 'UniqueCarrier', 'ActualElapsedTime', 'AirTime',
-               'ArrDelay', 'DepDelay', 'Origin', 'Dest', 'Distance']
+    usecols_x = ['Month', 'DayofMonth', 'DayOfWeek', 'DepTime', 'CRSDepTime',
+                 'ArrTime', 'CRSArrTime', 'UniqueCarrier', 'ActualElapsedTime', 'AirTime',
+                 'DepDelay', 'Origin', 'Dest', 'Distance']
+
+    schema_sdf = StructType([
+        StructField('Year', IntegerType(), True),
+        StructField('Month', IntegerType(), True),
+        StructField('DayofMonth', IntegerType(), True),
+        StructField('DayOfWeek', IntegerType(), True),
+        StructField('DepTime', DoubleType(), True),
+        StructField('CRSDepTime', DoubleType(), True),
+        StructField('ArrTime', DoubleType(), True),
+        StructField('CRSArrTime', DoubleType(), True),
+        StructField('UniqueCarrier', StringType(), True),
+        StructField('FlightNum', StringType(), True),
+        StructField('TailNum', StringType(), True),
+        StructField('ActualElapsedTime', DoubleType(), True),
+        StructField('CRSElapsedTime',  DoubleType(), True),
+        StructField('AirTime',  DoubleType(), True),
+        StructField('ArrDelay',  DoubleType(), True),
+        StructField('DepDelay',  DoubleType(), True),
+        StructField('Origin', StringType(), True),
+        StructField('Dest',  StringType(), True),
+        StructField('Distance',  DoubleType(), True),
+        StructField('TaxiIn',  DoubleType(), True),
+        StructField('TaxiOut',  DoubleType(), True),
+        StructField('Cancelled',  IntegerType(), True),
+        StructField('CancellationCode',  StringType(), True),
+        StructField('Diverted',  IntegerType(), True),
+        StructField('CarrierDelay', DoubleType(), True),
+        StructField('WeatherDelay',  DoubleType(), True),
+        StructField('NASDelay',  DoubleType(), True),
+        StructField('SecurityDelay',  DoubleType(), True),
+        StructField('LateAircraftDelay',  DoubleType(), True)
+    ])
+    # s = spark.read.schema("col0 INT, col1 DOUBLE")
+
 
     dummy_info_path = "~/running/data_raw/dummy_info.pkl"
     with open(os.path.expanduser(dummy_info_path), "rb") as f:
@@ -145,9 +180,9 @@ for file_no_i in range(n_files):
         isub = 0 # fixed, never changed
 
         # Read HDFS to Spark DataFrame
-        data_sdf_i=spark.read.csv(file_path[file_no_i],header=True)
-        data_sdf_i = data_sdf_i.select(usecols)
-        data_sdf_i.dropna()
+        data_sdf_i = spark.read.csv(file_path[file_no_i], header=True, schema=schema_sdf)
+        data_sdf_i = data_sdf_i.select(usecols_x + [Y_name])
+        data_sdf_i = data_sdf_i.dropna()
 
         # Define response variable
         data_sdf_i = data_sdf_i.withColumn(Y_name,functions.when(data_sdf_i[Y_name] > 0, 1).otherwise(0))
@@ -225,7 +260,7 @@ for file_no_i in range(n_files):
         [StructField('par_id', IntegerType(), True),
          StructField('coef', DoubleType(), True),
          StructField('Sig_invMcoef', DoubleType(), True)]
-        + convert_schema(data_sdf_i.schema.fields[2:],  out_type=DoubleType()))
+        + convert_schema(usecols_x, dummy_info, fit_intercept))
 
     @pandas_udf(schema_beta, PandasUDFType.GROUPED_MAP)
     def logistic_model_udf(sample_df):
