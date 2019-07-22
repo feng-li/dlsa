@@ -124,15 +124,25 @@ def insert_partition_id_sdf(data_sdf, partition_num, partition_method):
     return data_sdf
 
 
-def convert_schema(schema_fields=None, fields_index=None, out_type=None, convert_dummies=[]):
+def convert_schema(usecols_x, dummy_info, fit_intercept):
     '''Convert schema type for large data frame
 
     '''
-    if fields_index == None:
-        fields_index = range(len(schema_fields))
 
-    for i in fields_index:
-        schema_fields[i].dataType = out_type
+    schema_fields = []
+    if len(dummy_info) == 0: # No dummy is used
+        for j in usecols_x:
+            schema_fields.append(StructField(j, DoubleType(), True))
 
+    else:
+        # Use dummy
+        convert_dummies = list(dummy_info['factor_selected'].keys())
+
+        for x in list(set(usecols_x) - set(convert_dummies)):
+            schema_fields.append(StructField(x, DoubleType(), True))
+
+        for i in convert_dummies:
+            for j in dummy_info["factor_selected_names"][i][fit_intercept:]:
+                schema_fields.append(StructField(j, DoubleType(), True))
 
     return schema_fields
