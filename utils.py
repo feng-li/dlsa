@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 
+from pyspark.sql.types import *
 import pandas as pd
 import numpy as np
 import sys, os, pickle

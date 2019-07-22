@@ -131,8 +131,8 @@ elif  using_data in ["real_pdf", "real_hdfs"]:
 
     n_files = len(file_path)
     partition_num_sub = []
-    max_sample_size_per_sdf = 10000
-    sample_size_per_partition = 10000
+    max_sample_size_per_sdf = 100000
+    sample_size_per_partition = 100000
 
     Y_name = "ArrDelay"
     sample_size_sub = []
