@@ -124,7 +124,7 @@ def insert_partition_id_sdf(data_sdf, partition_num, partition_method):
     return data_sdf
 
 
-def convert_schema(schema_fields=None, fields_index=None, out_type=None):
+def convert_schema(schema_fields=None, fields_index=None, out_type=None, convert_dummies=[]):
     '''Convert schema type for large data frame
 
     '''
