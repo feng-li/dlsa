@@ -39,7 +39,7 @@ def simulate_logistic(sample_size, p, partition_method, partition_num):
 
     return data_pdf
 
-def logistic_model(sample_df, Y_name, fit_intercept=False):
+def logistic_model(sample_df, Y_name, fit_intercept=False, convert_dummies=[]):
     '''Run logistic model on the partitioned data set
 
     '''
@@ -47,8 +47,22 @@ def logistic_model(sample_df, Y_name, fit_intercept=False):
     # x_train = sample_df.drop(['label', 'row_id', 'partition_id'], axis=1)
     # sample_df = samle_df.dropna()
 
-    x_train = sample_df.drop(['partition_id', Y_name], axis=1)
+    # Special step to create a local dummy matrix
+    if len(convert_dummies) > 0:
+        X_with_dummies = pd.get_dummies(data=sample_df,
+                                        drop_first=fit_intercept,
+                                        columns=convert_dummies,
+                                        sparse=True)
+
+        x_train = X_with_dummies.drop(Y_name, axis = 1)
+        x_train.sort_index(axis=1, inplace=True)
+
+    else:
+        x_train = sample_df.drop(['partition_id', Y_name], axis=1)
+
+
     y_train = sample_df[Y_name]
+
     model = LogisticRegression(solver="lbfgs", penalty="none", fit_intercept=fit_intercept, max_iter=500)
     model.fit(x_train, y_train)
     prob = model.predict_proba(x_train)[:, 0]
