@@ -24,17 +24,18 @@ OUTPATH=~/running/
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # for i in 1 {4..100..4} # 1, 5, 10, 15, ... , 100
+
 # for i in {256..4..-4}
-for executors in 6
+for executors in 10
 do
     tic=`date +%s`
     PYSPARK_PYTHON=python3 spark-submit \
                   --master yarn  \
-                  --driver-memory 50g    \
                   --executor-memory ${EM}   \
                   --num-executors ${executors}      \
+                  --driver-memory 30g    \
                   --executor-cores ${EC}    \
-                  --conf spark.rpc.message.maxSize=1024 \
+                  --conf spark.rpc.message.maxSize=2000 \
                   $DIR/../${MODEL_FILE}.py  \
                   > ${OUTPATH}${MODEL_DESCRIPTION}_${MODEL_FILE}.NE${executors}.EC${EC}.out 2> ${OUTPATH}${MODEL_DESCRIPTION}_${MODEL_FILE}.NE${executors}.EC${EC}.log
     toc=`date +%s`
