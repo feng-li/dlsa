@@ -240,20 +240,21 @@ for file_no_i in range(n_files):
                   + '.\tTime to go:\t' + str(time_to_go))
 
 
-            # Repartition
-            if file_no_i == 0:
-                time_repartition_sub = []
-                time_2sdf_sub = []
+        # Repartition
+            time_2sdf_sub = []
 
             time_2sdf_sub.append(time.perf_counter() - tic_2sdf)
 
-            tic_repartition = time.perf_counter()
-            data_sdf_i = data_sdf_i.repartition(partition_num_sub[file_no_i], "partition_id")
-            time_repartition_sub.append(time.perf_counter() - tic_repartition)
 
 ##----------------------------------------------------------------------------------------
 ## PARTITIONED LOGISTIC REGRESSION
 ##----------------------------------------------------------------------------------------
+    if file_no_i == 0:
+        time_repartition_sub = []
+
+    tic_repartition = time.perf_counter()
+    data_sdf_i = data_sdf_i.repartition(partition_num_sub[file_no_i], "partition_id")
+    time_repartition_sub.append(time.perf_counter() - tic_repartition)
 
     ## Register a user defined function via the Pandas UDF
     schema_beta = StructType(
@@ -308,7 +309,7 @@ time_dlsa = time.perf_counter() - tic_dlsa
 memsize_total = sum(memsize_sub)
 partition_num = sum(partition_num_sub)
 time_repartition = sum(time_repartition_sub)
-time_2sdf = sum(time_2sdf_sub)
+# time_2sdf = sum(time_2sdf_sub)
 # sample_size_per_partition = sample_size / partition_num
 
 out_time = pd.DataFrame(
@@ -317,7 +318,7 @@ out_time = pd.DataFrame(
      "p": p,
      "partition_num": partition_num,
      "memsize_total": memsize_total,
-     "time_2sdf": time_2sdf,
+     # "time_2sdf": time_2sdf,
      "time_repartition": time_repartition,
      "time_mapred": time_mapred,
      "time_dlsa": time_dlsa}, index=[0])

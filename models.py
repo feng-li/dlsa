@@ -54,7 +54,7 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, convert_dummies=[]):
                                         columns=convert_dummies,
                                         sparse=True)
 
-        x_train = X_with_dummies.drop(Y_name, axis = 1)
+        x_train = X_with_dummies.drop(['partition_id', Y_name], axis = 1)
         x_train.sort_index(axis=1, inplace=True)
 
     else:
