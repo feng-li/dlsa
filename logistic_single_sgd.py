@@ -57,6 +57,7 @@ for iEpoch in range(nEpochs):
         # Create an full-column empty DataFrame and resize current subset
         edf = pd.DataFrame(columns=list(set(dummy_column_names) - set(sample_df0.columns)))# empty df
         sample_df = sample_df0.append(edf, sort=True)
+        del sample_df0
         sample_df.fillna(0, inplace = True) # Replace append-generated NaN with 0
 
 
