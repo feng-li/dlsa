@@ -39,7 +39,7 @@ def simulate_logistic(sample_size, p, partition_method, partition_num):
 
     return data_pdf
 
-def logistic_model(sample_df, Y_name, fit_intercept=False, convert_dummies=[]):
+def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[]):
     '''Run logistic model on the partitioned data set
 
     '''
@@ -48,18 +48,41 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, convert_dummies=[]):
     # sample_df = samle_df.dropna()
 
     # Special step to create a local dummy matrix
-    if len(convert_dummies) > 0:
+    if len(dummy_info) > 0:
+        convert_dummies = list(dummy_info['factor_selected'].keys())
+
         X_with_dummies = pd.get_dummies(data=sample_df,
                                         drop_first=fit_intercept,
                                         columns=convert_dummies,
                                         sparse=True)
 
         x_train = X_with_dummies.drop(['partition_id', Y_name], axis = 1)
-        x_train.sort_index(axis=1, inplace=True)
+
+        # Check if any dummy column is not in the data chunk.
+        usecols_x = list(set(sample_df.columns.drop(['partition_id', Y_name]))
+                         - set(convert_dummies))
+        for i in convert_dummies:
+            for j in dummy_info["factor_selected_names"][i][fit_intercept:]:
+                usecols_x.append(j)
+        usecols_x.sort()
+        usecols_full = ['par_id', "coef", "Sig_invMcoef"]
+        usecols_full.extend(usecols_x)
+
+        # raise Exception("usecols_full:\t" + str(len(usecols_full)))
+        # raise Exception("usecols_x:\t" + str(usecols_x))
+
+        if set(x_train.columns) != set(usecols_x):
+            warnings.warn("Dummies:" + str(set(x_train.columns) - set(usecols_x))
+                          + "missing in this data chunk " + str(x_train.shape)
+                          + "Skip modeling this part of data.")
+            return pd.DataFrame(columns=usecols_full)
 
     else:
         x_train = sample_df.drop(['partition_id', Y_name], axis=1)
 
+    x_train.sort_index(axis=1, inplace=True)
+
+    # raise Exception("x_train shape:" + str(list(x_train.columns)))
 
     y_train = sample_df[Y_name]
 

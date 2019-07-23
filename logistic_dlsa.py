@@ -85,7 +85,7 @@ elif  using_data in ["real_pdf", "real_hdfs"]:
 #-----------------------------------------------------------------------------------------
     # file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in string.ascii_lowercase[0:21]] # local file
 
-    file_path = ['/running/data_raw/xa' + str(letter) + '.csv' for letter in string.ascii_lowercase[0:1]] # HDFS file
+    file_path = ['/running/data_raw/xa' + str(letter) + '.csv' for letter in string.ascii_lowercase[1:2]] # HDFS file
     usecols_x = ['Month', 'DayofMonth', 'DayOfWeek', 'DepTime', 'CRSDepTime',
                  'ArrTime', 'CRSArrTime', 'UniqueCarrier', 'ActualElapsedTime', 'AirTime',
                  'DepDelay', 'Origin', 'Dest', 'Distance']
@@ -131,7 +131,7 @@ elif  using_data in ["real_pdf", "real_hdfs"]:
 
     n_files = len(file_path)
     partition_num_sub = []
-    max_sample_size_per_sdf = 100000
+    max_sample_size_per_sdf = 100000 # No effect with `real_hdfs` data
     sample_size_per_partition = 100000
 
     Y_name = "ArrDelay"
@@ -140,8 +140,13 @@ elif  using_data in ["real_pdf", "real_hdfs"]:
 
 # Read or load data chunks into pandas
 #-----------------------------------------------------------------------------------------
+time_2sdf_sub = []
+time_repartition_sub = []
+
 loop_counter = 0
 for file_no_i in range(n_files):
+    tic_2sdf = time.perf_counter()
+
     if  using_data == "simulated_pdf":
         if file_no_i == 0:
             # To test performance, we only simulate one subset of data and replicated it.
@@ -184,7 +189,7 @@ for file_no_i in range(n_files):
         data_sdf_i = data_sdf_i.select(usecols_x + [Y_name])
         data_sdf_i = data_sdf_i.dropna()
 
-        # Define response variable
+        # Define or transform response variable
         data_sdf_i = data_sdf_i.withColumn(Y_name,functions.when(data_sdf_i[Y_name] > 0, 1).otherwise(0))
 
         # Replace dropped factors with `00_OTHERS`. The trick of `00_` prefix will allow
@@ -197,15 +202,13 @@ for file_no_i in range(n_files):
         partition_num_sub.append(ceil(sample_size_sub[file_no_i] / sample_size_per_partition))
 
         ## Add partition ID
-        data_sdf_i = data_sdf_i.withColumn("partition_id",
-                                           monotonically_increasing_id() % partition_num_sub[file_no_i])
-        # data_sdf_i = data_sdf_i.withColumn("partition_id",
-        #                        data_sdf_i["row_id"] % partition_num_sub[file_no_i])
-
+        data_sdf_i = data_sdf_i.withColumn(
+            "partition_id",
+            monotonically_increasing_id() % partition_num_sub[file_no_i])
 
         ## Create dummy variables We could do it either directly with
         ## https://stackoverflow.com/questions/35879372/pyspark-matrix-with-dummy-variables
-        ## or we do it within grouped dlsa
+        ## or we do it within grouped dlsa (default)
 
 ##----------------------------------------------------------------------------------------
 ## MODEL FITTING ON PARTITIONED DATA
@@ -213,8 +216,6 @@ for file_no_i in range(n_files):
     # Split the process into small subs if reading a real big DataFrame which my cause
     # MemoryError
     if  using_data in ["real_pdf", "simulated_pdf"]:
-        tic_2sdf = time.perf_counter()
-
         nsub = ceil(sample_size_sub[file_no_i] / max_sample_size_per_sdf)
 
         for isub in range(nsub):
@@ -240,18 +241,12 @@ for file_no_i in range(n_files):
                   + '.\tTime to go:\t' + str(time_to_go))
 
 
-        # Repartition
-            time_2sdf_sub = []
-
-            time_2sdf_sub.append(time.perf_counter() - tic_2sdf)
+    time_2sdf_sub.append(time.perf_counter() - tic_2sdf)
 
 
 ##----------------------------------------------------------------------------------------
 ## PARTITIONED LOGISTIC REGRESSION
 ##----------------------------------------------------------------------------------------
-    if file_no_i == 0:
-        time_repartition_sub = []
-
     tic_repartition = time.perf_counter()
     data_sdf_i = data_sdf_i.repartition(partition_num_sub[file_no_i], "partition_id")
     time_repartition_sub.append(time.perf_counter() - tic_repartition)
@@ -268,7 +263,7 @@ for file_no_i in range(n_files):
         return logistic_model(sample_df=sample_df,
                               Y_name=Y_name,
                               fit_intercept=fit_intercept,
-                              convert_dummies=convert_dummies)
+                              dummy_info=dummy_info)
 
     # pdb.set_trace()
     # partition the data and run the UDF
@@ -315,7 +310,7 @@ time_repartition = sum(time_repartition_sub)
 out_time = pd.DataFrame(
     {"sample_size": sample_size,
      "sample_size_per_partition": sample_size_per_partition,
-     "p": p,
+     "n_par": len(schema_beta) - 3,
      "partition_num": partition_num,
      "memsize_total": memsize_total,
      # "time_2sdf": time_2sdf,

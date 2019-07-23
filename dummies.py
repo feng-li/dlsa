@@ -4,7 +4,7 @@ import pickle
 import pandas as pd
 import os
 
-def select_dummy_factors(pdf, dummy_columns, keep_top, replace_with="00_OTHERS", pickle_file):
+def select_dummy_factors(pdf, dummy_columns, keep_top, replace_with, pickle_file):
     '''Merge dummy key with frequency in the given file
 
     '''
@@ -28,6 +28,7 @@ def select_dummy_factors(pdf, dummy_columns, keep_top, replace_with="00_OTHERS",
             factor_new = []
         else:
             factor_new = [replace_with]
+
         factor_new.extend(factor_selected[dummy_columns[i]])
 
         factor_selected_names[dummy_columns[i]] = [dummy_columns[i] + '_' + str(x) for x in factor_new]
@@ -39,17 +40,19 @@ def select_dummy_factors(pdf, dummy_columns, keep_top, replace_with="00_OTHERS",
                   'factor_selected_names': factor_selected_names}
 
     pickle.dump(dummy_info, open(os.path.expanduser(pickle_file), 'wb'))
+    print("dummy_info saved in:\t" + pickle_file)
 
     return dummy_info
 
 
-# pdf = pd.read_csv(os.path.expanduser("~/running/data_raw/dummies.csv.bz2"),
-#                   error_bad_lines=False,
-#                   # usecols = [1, 3, 8, 16, 17],
-#                   engine='c') # The C engine is faster
-# dummy_info = select_dummy_factors(pdf,
-#                                   dummy_columns=['Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'],
-#                                   keep_top= [1, 1, 0.9, 0.9, 0.9],
-#                                   replace_with='00_OTHERS',
-#                                   pickle_file='~/running/data_raw/dummy_info.pkl'
-# )
+
+if __name__ == "__main__":
+    pdf = pd.read_csv(os.path.expanduser("~/running/data_raw/dummies.csv.bz2"),
+                      error_bad_lines=False,
+                      engine='c') # The C engine is faster
+    dummy_info = select_dummy_factors(
+        pdf,
+        dummy_columns=['Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'],
+        keep_top= [1, 1, 0.8, 0.9, 0.9],
+        replace_with='00_OTHERS',
+        pickle_file='~/running/data_raw/dummy_info.pkl')
