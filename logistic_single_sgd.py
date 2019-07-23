@@ -11,7 +11,7 @@ import pickle
 
 from sklearn.linear_model import SGDClassifier
 
-from utils import clean_airlinedata, get_dummy_keys
+from utils import clean_airlinedata
 # from linereader import dopen
 import string
 
@@ -25,8 +25,9 @@ tic0 = time.perf_counter()
 # file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in string.ascii_lowercase[1:21]]
 file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in string.ascii_lowercase[0:21]]
 
-model_saved_file_name = '~/running/single_sgd_finalized_model_' + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime() + '.pkl'
-dummy_set = "~/running/data_raw/dummy_set.pkl"
+model_saved_file_name = '~/running/single_sgd_finalized_model_' + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + '.pkl'
+dummy_info_path = "~/running/data_raw/dummy_info.pkl"
+
 nBatches = 1000
 nEpochs = 5
 Y_name = 'ArrDelay'
@@ -42,8 +43,9 @@ SGD_model = SGDClassifier(fit_intercept=fit_intercept, verbose=verbose,
 
 # numeric_column_names = ['ArrDelay', 'DayofMonth', 'DepTime', 'CRSDepTime', 'ArrTime', 'CRSArrTime',
 #                         'ActualElapsedTime', 'AirTime', 'DepDelay', 'Distance']
-
-dummy_column_names = get_dummy_keys(dummy_set, fit_intercept)
+with open(os.path.expanduser(dummy_info_path), "rb") as f:
+    dummy_info = pickle.load(f)
+convert_dummies = list(dummy_info['factor_selected'].keys())
 
 # The main SGD looping
 loop_counter = 0
@@ -52,10 +54,11 @@ for iEpoch in range(nEpochs):
     for file_number in range(len(file_path)):
 
         sample_df0 = clean_airlinedata(os.path.expanduser(file_path[file_number]),
-                                       fit_intercept=fit_intercept)
+                                       fit_intercept=fit_intercept,
+                                       dummy_info=dummy_info)
 
         # Create an full-column empty DataFrame and resize current subset
-        edf = pd.DataFrame(columns=list(set(dummy_column_names) - set(sample_df0.columns)))# empty df
+        edf = pd.DataFrame(columns=convert_dummies)# empty df
         sample_df = sample_df0.append(edf, sort=True)
         del sample_df0
         sample_df.fillna(0, inplace = True) # Replace append-generated NaN with 0

@@ -24,7 +24,8 @@ from  dlsa import dlsa, dlsa_r, dlsa_mapred
 
 # os.chdir("dlsa") # TEMP code
 from  models import simulate_logistic, logistic_model
-from  utils import clean_airlinedata, insert_partition_id_pdf, convert_schema
+from  utils import clean_airlinedata, insert_partition_id_pdf
+from  utils_spark import convert_schema
 
 from sklearn.linear_model import LogisticRegression
 
