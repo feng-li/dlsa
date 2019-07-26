@@ -86,12 +86,12 @@ elif  using_data in ["real_pdf", "real_hdfs"]:
 #-----------------------------------------------------------------------------------------
     # file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in string.ascii_lowercase[0:21]] # local file
 
-    file_path = ['/running/data_raw/xa' + str(letter) + '.csv' for letter in string.ascii_lowercase[0:21]] # HDFS file
+    # file_path = ['/running/data_raw/xa' + str(letter) + '.csv' for letter in string.ascii_lowercase[0:21]] # HDFS file
 
-    # file_path = ['/running/data_raw/allfile.csv'] # HDFS file
+    file_path = ['/running/data_raw/allfile.csv'] # HDFS file
 
-    usecols_x = ['Month', 'DayofMonth', 'DayOfWeek', 'DepTime', 'CRSDepTime',
-                 'ArrTime', 'CRSArrTime', 'UniqueCarrier', 'ActualElapsedTime', 'AirTime',
+    usecols_x = ['Year', 'Month', 'DayofMonth', 'DayOfWeek', 'DepTime', 'CRSDepTime',
+                 'CRSArrTime', 'UniqueCarrier', 'ActualElapsedTime', 'AirTime',
                  'DepDelay', 'Origin', 'Dest', 'Distance']
 
     schema_sdf = StructType([
@@ -128,7 +128,7 @@ elif  using_data in ["real_pdf", "real_hdfs"]:
     # s = spark.read.schema("col0 INT, col1 DOUBLE")
 
 
-    dummy_info_path = "~/running/data_raw/dummy_info.pkl"
+    dummy_info_path = "~/running/data_raw/dummy_info_latest.pkl"
     with open(os.path.expanduser(dummy_info_path), "rb") as f:
         dummy_info = pickle.load(f)
     convert_dummies = list(dummy_info['factor_selected'].keys())

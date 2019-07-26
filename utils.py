@@ -3,6 +3,7 @@
 import pandas as pd
 import numpy as np
 import sys, os, pickle
+import warnings
 
 def clean_airlinedata(file_path, fit_intercept, dummy_info, sparse=True):
     '''Function to clean airline data from
@@ -22,7 +23,7 @@ def clean_airlinedata(file_path, fit_intercept, dummy_info, sparse=True):
     '''
     Y_name = 'ArrDelay'
     pdf0 = pd.read_csv(file_path, error_bad_lines=False,
-                       usecols = [1,2,3,4,5,6,7,8,11,13,14,15,16,17,18],
+                       usecols = [0,1,2,3,4,5,7,8,11,13,14,16,17,18],
                        engine='c', # The C engine is faster
                        dtype={'Year': 'Int64',
                               'Month': 'Int64',
