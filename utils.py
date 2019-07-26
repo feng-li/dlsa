@@ -66,8 +66,8 @@ def clean_airlinedata(file_path, fit_intercept, dummy_info, sparse=True):
 
         # Create an full-column empty DataFrame and resize current subset
         if set(X.columns) != set(usecols_x):
-            warnings.warn("Dummies:" + str(set(usecols_x) - set(X.columns))
-                          + "missing in this data chunk " + str(X.shape))
+            warnings.warn("Dummies: " + str(set(usecols_x) - set(X.columns))
+                          + " missing in this data chunk " + str(X.shape))
             edf = pd.DataFrame(columns=convert_dummies)# empty df
             X = X.append(edf, sort=True)
             X.fillna(0, inplace = True) # Replace append-generated NaN with 0
