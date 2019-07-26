@@ -322,15 +322,17 @@ out_time = pd.DataFrame(
      "time_mapred": time_mapred,
      "time_dlsa": time_dlsa}, index=[0])
 
+# save the model to pickle, use pd.read_pickle("test.pkl") to load it.
+# out_dlas.to_pickle("test.pkl")
+out = [Sig_inv_beta, out_dlsa, out_time]
+pickle.dump(out, open(os.path.expanduser(model_saved_file_name), 'wb'))
+print("Model results are saved to:\t" + model_saved_file_name)
+
 # print(", ".join(format(x, "10.2f") for x in out_time))
 print("Model Summary:\n")
 print(out_time.to_string())
 print("\nDLSA Coefficients:\n")
 print(out_dlsa.to_string())
-
-# save the model to pickle, use pd.read_pickle("test.pkl") to load it.
-# out_dlas.to_pickle("test.pkl")
-
 
 # Verify with Pure R implementation.
 # numpy2ri.activate()

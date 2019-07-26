@@ -32,7 +32,7 @@ nBatches = 1000
 nEpochs = 5
 Y_name = 'ArrDelay'
 loss="log"
-penalty = 'none'
+penalty = 'none' # str, ‘none’, ‘l2’, ‘l1’, or ‘elasticnet’
 fit_intercept = True
 verbose = True
 n_jobs = -1 # Use all processors
@@ -71,6 +71,8 @@ for iEpoch in range(nEpochs):
         x_train = sample_df.drop([Y_name], axis=1)
         y_train = sample_df[Y_name]
         classes=np.unique(y_train)
+
+        print(x_train.shape)
 
         for iBatch in range(nBatches):
 
