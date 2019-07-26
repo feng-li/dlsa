@@ -62,7 +62,7 @@ spark.sparkContext.addPyFile("/home/lifeng/code/dlsa/utils.py")
 #-----------------------------------------------------------------------------------------
 using_data = "real_hdfs" # ["simulated_pdf", "real_pdf", "real_hdfs"
 partition_method = "systematic"
-model_saved_file_name = '~/running/dlsa_finalized_model_' + time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()) + '.pkl'
+model_saved_file_name = '~/running/logistic_dlsa_model_' + time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()) + '.pkl'
 
 # Model settings
 #-----------------------------------------------------------------------------------------
@@ -86,9 +86,9 @@ elif  using_data in ["real_pdf", "real_hdfs"]:
 #-----------------------------------------------------------------------------------------
     # file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in string.ascii_lowercase[0:21]] # local file
 
-    # file_path = ['/running/data_raw/xa' + str(letter) + '.csv' for letter in string.ascii_lowercase[0:21]] # HDFS file
+    file_path = ['/running/data_raw/xa' + str(letter) + '.csv' for letter in string.ascii_lowercase[0:21]] # HDFS file
 
-    file_path = ['/running/data_raw/allfile.csv'] # HDFS file
+    # file_path = ['/running/data_raw/allfile.csv'] # HDFS file
 
     usecols_x = ['Month', 'DayofMonth', 'DayOfWeek', 'DepTime', 'CRSDepTime',
                  'ArrTime', 'CRSArrTime', 'UniqueCarrier', 'ActualElapsedTime', 'AirTime',
@@ -136,7 +136,7 @@ elif  using_data in ["real_pdf", "real_hdfs"]:
     n_files = len(file_path)
     partition_num_sub = []
     max_sample_size_per_sdf = 100000 # No effect with `real_hdfs` data
-    sample_size_per_partition = 1000000
+    sample_size_per_partition = 100000
 
     Y_name = "ArrDelay"
     sample_size_sub = []
@@ -330,7 +330,7 @@ print("Model results are saved to:\t" + model_saved_file_name)
 
 # print(", ".join(format(x, "10.2f") for x in out_time))
 print("Model Summary:\n")
-print(out_time.to_string())
+print(out_time.to_string(index=False))
 print("\nDLSA Coefficients:\n")
 print(out_dlsa.to_string())
 

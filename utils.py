@@ -20,7 +20,7 @@ def clean_airlinedata(file_path, fit_intercept, dummy_info, sparse=True):
     13AirTime=ActualElapsedTime-TaxiIn-TaxiOut, TaxiIn and TaxiOut only available since 1995.
 
     '''
-
+    Y_name = 'ArrDelay'
     pdf0 = pd.read_csv(file_path, error_bad_lines=False,
                        usecols = [1,2,3,4,5,6,7,8,11,13,14,15,16,17,18],
                        engine='c', # The C engine is faster
@@ -41,23 +41,47 @@ def clean_airlinedata(file_path, fit_intercept, dummy_info, sparse=True):
     pdf = pdf0.dropna()
 
     if len(dummy_info) > 0:
-        for i in dummy_info['factor_dropped'].keys():
+        convert_dummies = list(dummy_info['factor_selected'].keys())
+
+        # Drop levels based on dummy_info
+        for i in convert_dummies:
             if len(dummy_info['factor_dropped'][i]) > 0:
                 pdf.loc[:, i] = pdf.loc[:, i].replace(dummy_info['factor_dropped'][i], '00_OTHERS')
 
-    X_with_dummies = pd.get_dummies(data=pdf, drop_first=fit_intercept,
-                                    columns=['Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'], # 2, 4, 9, 17, 18
-                                    sparse=sparse)
-    X = X_with_dummies.drop('ArrDelay',axis = 1)
+        X_with_dummies = pd.get_dummies(data=pdf, drop_first=fit_intercept,
+                                        # columns=['Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'], # 2, 4, 9, 17, 18
+                                        columns=convert_dummies,
+                                        sparse=sparse)
 
+
+        # Check if any dummy column is not in the data chunk.
+        usecols_x = list(set(X_with_dummies.columns.drop([Y_name]))
+                         - set(convert_dummies))
+        for i in convert_dummies:
+            for j in dummy_info["factor_selected_names"][i][fit_intercept:]:
+                usecols_x.append(j)
+
+        X = X_with_dummies.drop(Y_name,axis = 1)
+
+        # Create an full-column empty DataFrame and resize current subset
+        if set(X.columns) != set(usecols_x):
+            warnings.warn("Dummies:" + str(set(usecols_x) - set(X.columns))
+                          + "missing in this data chunk " + str(X.shape))
+            edf = pd.DataFrame(columns=convert_dummies)# empty df
+            X = X.append(edf, sort=True)
+            X.fillna(0, inplace = True) # Replace append-generated NaN with 0
+
+    else:
+        X = X_with_dummies.drop(Y_name,axis = 1)
+
+    X.sort_index(axis=1, inplace=True)
     # Obtain labels
     # FIXME: 'Cancelled' 'Diverted' could be used for multilevel logistic
-    Y = (pdf['ArrDelay']>0).astype(int)
+    Y = (pdf[Y_name]>0).astype(int)
 
     out_pdf = pd.concat([Y, X], axis=1).reset_index(drop=True)
 
     return out_pdf
-
 
 
 def insert_partition_id_pdf(data_pdf, partition_num, partition_method):

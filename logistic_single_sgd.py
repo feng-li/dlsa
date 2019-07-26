@@ -25,7 +25,7 @@ tic0 = time.perf_counter()
 # file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in string.ascii_lowercase[1:21]]
 file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in string.ascii_lowercase[0:21]]
 
-model_saved_file_name = '~/running/single_sgd_finalized_model_' + time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()) + '.pkl'
+model_saved_file_name = '~/running/logistic_sgd_model_' + time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()) + '.pkl'
 dummy_info_path = "~/running/data_raw/dummy_info.pkl"
 
 nBatches = 1000
@@ -53,16 +53,15 @@ for iEpoch in range(nEpochs):
 
     for file_number in range(len(file_path)):
 
-        sample_df0 = clean_airlinedata(os.path.expanduser(file_path[file_number]),
-                                       fit_intercept=fit_intercept,
-                                       dummy_info=dummy_info)
+        sample_df = clean_airlinedata(os.path.expanduser(file_path[file_number]),
+                                      fit_intercept=fit_intercept,
+                                      dummy_info=dummy_info)
 
         # Create an full-column empty DataFrame and resize current subset
-        edf = pd.DataFrame(columns=convert_dummies)# empty df
-        sample_df = sample_df0.append(edf, sort=True)
-        del sample_df0
-        sample_df.fillna(0, inplace = True) # Replace append-generated NaN with 0
-
+        # edf = pd.DataFrame(columns=convert_dummies)# empty df
+        # sample_df = sample_df0.append(edf, sort=True)
+        # sample_df.fillna(0, inplace = True) # Replace append-generated NaN with 0
+        # del sample_df0
 
         sample_df_size = sample_df.shape[0]
         total_idx = list(range(sample_df_size))

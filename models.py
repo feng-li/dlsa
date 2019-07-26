@@ -47,6 +47,7 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[]):
     # x_train = sample_df.drop(['label', 'row_id', 'partition_id'], axis=1)
     # sample_df = samle_df.dropna()
 
+
     # Special step to create a local dummy matrix
     if len(dummy_info) > 0:
         convert_dummies = list(dummy_info['factor_selected'].keys())
@@ -72,7 +73,7 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[]):
         # raise Exception("usecols_x:\t" + str(usecols_x))
 
         if set(x_train.columns) != set(usecols_x):
-            warnings.warn("Dummies:" + str(set(x_train.columns) - set(usecols_x))
+            warnings.warn("Dummies:" + str(set(usecols_x) - set(x_train.columns))
                           + "missing in this data chunk " + str(x_train.shape)
                           + "Skip modeling this part of data.")
             return pd.DataFrame(columns=usecols_full)
@@ -86,7 +87,7 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[]):
 
     y_train = sample_df[Y_name]
 
-    model = LogisticRegression(solver="lbfgs", penalty="none", fit_intercept=fit_intercept, max_iter=500)
+    model = LogisticRegression(solver="lbfgs", penalty="none", fit_intercept=fit_intercept)
     model.fit(x_train, y_train)
     prob = model.predict_proba(x_train)[:, 0]
     p = model.coef_.size
