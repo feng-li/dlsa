@@ -25,7 +25,7 @@ tic0 = time.perf_counter()
 # file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in string.ascii_lowercase[1:21]]
 file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in string.ascii_lowercase[0:21]]
 
-model_saved_file_name = '~/running/single_sgd_finalized_model_' + time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) + '.pkl'
+model_saved_file_name = '~/running/single_sgd_finalized_model_' + time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()) + '.pkl'
 dummy_info_path = "~/running/data_raw/dummy_info.pkl"
 
 nBatches = 1000
@@ -118,5 +118,4 @@ pickle.dump(SGD_model, open(os.path.expanduser(model_saved_file_name), 'wb'))
 # print(", ".join(format(x, "10.4f") for x in out))
 
 ## Load model
-# with open(os.path.expanduser(model_saved_file_name), "rb") as f:
-#     dump = pickle.load(f)
+## SGD_model=pickle.load(open(os.path.expanduser(r"~/running/single_sgd_finalized_model_2019-07-23 23:23:17.pkl"), "rb"))

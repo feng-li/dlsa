@@ -43,7 +43,7 @@ def clean_airlinedata(file_path, fit_intercept, dummy_info, sparse=True):
     if len(dummy_info) > 0:
         for i in dummy_info['factor_dropped'].keys():
             if len(dummy_info['factor_dropped'][i]) > 0:
-                pdf[i].replace(dummy_info['factor_dropped'][i], '00_OTHERS', inplace=True)
+                pdf.loc[:, i] = pdf.loc[:, i].replace(dummy_info['factor_dropped'][i], '00_OTHERS')
 
     X_with_dummies = pd.get_dummies(data=pdf, drop_first=fit_intercept,
                                     columns=['Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'], # 2, 4, 9, 17, 18
