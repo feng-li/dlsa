@@ -92,7 +92,7 @@ elif  using_data in ["real_pdf", "real_hdfs"]:
 
     usecols_x = ['Year', 'Month', 'DayofMonth', 'DayOfWeek', 'DepTime', 'CRSDepTime',
                  'CRSArrTime', 'UniqueCarrier', 'ActualElapsedTime', 'AirTime',
-                 'DepDelay', 'Origin', 'Dest', 'Distance']
+                 'Origin', 'Dest', 'Distance']
 
     schema_sdf = StructType([
         StructField('Year', IntegerType(), True),

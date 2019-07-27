@@ -31,14 +31,17 @@ dummy_info_path = "~/running/data_raw/dummy_info.pkl"
 nBatches = 1000
 nEpochs = 5
 Y_name = 'ArrDelay'
-loss="log"
+loss="log" # The ‘log’ loss gives logistic regression
 penalty = 'none' # str, ‘none’, ‘l2’, ‘l1’, or ‘elasticnet’
+average = True
+warm_start = True
 fit_intercept = True
 verbose = True
 n_jobs = -1 # Use all processors
 
 SGD_model = SGDClassifier(fit_intercept=fit_intercept, verbose=verbose,
-                          penalty=penalty, loss=loss, n_jobs=n_jobs)
+                          penalty=penalty, loss=loss, n_jobs=n_jobs,
+                          average=average, warm_start=warm_start)
 
 
 # numeric_column_names = ['ArrDelay', 'DayofMonth', 'DepTime', 'CRSDepTime', 'ArrTime', 'CRSArrTime',
@@ -72,6 +75,7 @@ for iEpoch in range(nEpochs):
         classes=np.unique(y_train)
 
         print(x_train.shape)
+        print(x_train.columns)
 
         for iBatch in range(nBatches):
 
@@ -114,7 +118,8 @@ for iEpoch in range(nEpochs):
 time_wallclock = time.perf_counter() - tic0
 
 ## Save model as file
-pickle.dump(SGD_model, open(os.path.expanduser(model_saved_file_name), 'wb'))
+out = [SGD_model, x_train.columns]
+pickle.dump(out, open(os.path.expanduser(model_saved_file_name), 'wb'))
 # out = [sample_size, p, memsize, time_parallelize, time_clusterrun, time_wallclock]
 # print(", ".join(format(x, "10.4f") for x in out))
 

@@ -73,7 +73,7 @@ def clean_airlinedata(file_path, fit_intercept, dummy_info, sparse=True):
             X.fillna(0, inplace = True) # Replace append-generated NaN with 0
 
     else:
-        X = X_with_dummies.drop(Y_name,axis = 1)
+        X = pdf0.drop(Y_name,axis = 1)
 
     X.sort_index(axis=1, inplace=True)
     # Obtain labels
