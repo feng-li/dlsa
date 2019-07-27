@@ -25,20 +25,30 @@ def dlsa_mapred(model_mapped_sdf):
     groupped_sdf_sum = groupped_sdf.sum(*model_mapped_sdf.columns[1:]) #TODO: Error with Python < 3.7 for > 255 arguments. Location 0 is 'par_id'
     groupped_pdf_sum = groupped_sdf_sum.toPandas().sort_values("par_id")
 
-    Sig_invMcoef_sum = groupped_pdf_sum.iloc[:,2]
-    Sig_inv_sum = groupped_pdf_sum.iloc[:,3:]
+    if groupped_pdf_sum.shape[0] == 0: # bad chunked models
 
-    # par_byOLS = np.linalg.solve(Sig_inv_sum, Sig_invMcoef_sum)
-    par_byOLS = np.linalg.lstsq(Sig_inv_sum, Sig_invMcoef_sum, rcond=None)[0] # least-squares solution
+        raise Exception("Zero-length grouped pandas DataFrame obtained, check the input.")
+        # out = pd.DataFrame(columns= ["par_byOLS", "par_byONEHOT"] + model_mapped_sdf.columns[3:])
 
-    par_byONEHOT = groupped_pdf_sum['sum(coef)'] / model_mapped_sdf.rdd.getNumPartitions()
-    p = len(Sig_invMcoef_sum)
+    else:
 
-    return pd.DataFrame(np.concatenate((par_byOLS.reshape(p, 1),
-                                        np.asarray(par_byONEHOT).reshape(p, 1),
-                                        Sig_inv_sum), 1),
-                        columns= ["par_byOLS", "par_byONEHOT"] + model_mapped_sdf.columns[3:])
+        Sig_invMcoef_sum = groupped_pdf_sum.iloc[:,2]
+        Sig_inv_sum = groupped_pdf_sum.iloc[:,3:]
 
+        # par_byOLS = np.linalg.solve(Sig_inv_sum, Sig_invMcoef_sum)
+        par_byOLS = np.linalg.lstsq(Sig_inv_sum,
+                                    Sig_invMcoef_sum,
+                                    rcond=None)[0] # least-squares solution
+
+        par_byONEHOT = groupped_pdf_sum['sum(coef)'] / model_mapped_sdf.rdd.getNumPartitions()
+        p = len(Sig_invMcoef_sum)
+
+        out = pd.DataFrame(np.concatenate((par_byOLS.reshape(p, 1),
+                                           np.asarray(par_byONEHOT).reshape(p, 1),
+                                           Sig_inv_sum), 1),
+                           columns= ["par_byOLS", "par_byONEHOT"] + model_mapped_sdf.columns[3:])
+
+    return out
 
 
 robjects.r.source(os.path.dirname(os.path.abspath(__file__)) + "/R/dlsa_alasso_func.R", verbose=False)

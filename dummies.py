@@ -52,7 +52,7 @@ if __name__ == "__main__":
                       engine='c') # The C engine is faster
     dummy_info = select_dummy_factors(
         pdf,
-        dummy_columns=['Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'],
-        keep_top= [1, 1, 0.8, 0.9, 0.9],
+        dummy_columns=['Year', 'Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'],
+        keep_top= [0.9, 1, 1, 0.8, 0.9, 0.9],
         replace_with='00_OTHERS',
-        pickle_file='~/running/data_raw/dummy_info.pkl')
+        pickle_file='~/running/data_raw/dummy_info_latest.pkl')

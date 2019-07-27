@@ -128,7 +128,7 @@ elif  using_data in ["real_pdf", "real_hdfs"]:
     # s = spark.read.schema("col0 INT, col1 DOUBLE")
 
 
-    dummy_info_path = "~/running/data_raw/dummy_info_latest.pkl"
+    dummy_info_path = "~/running/data_raw/dummy_info.pkl"
     with open(os.path.expanduser(dummy_info_path), "rb") as f:
         dummy_info = pickle.load(f)
     convert_dummies = list(dummy_info['factor_selected'].keys())

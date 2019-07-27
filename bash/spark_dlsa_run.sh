@@ -13,7 +13,7 @@ MODEL_DESCRIPTION=$1
 
 # Tiny executors: one executor per core
 EC=1
-EM=10g
+EM=6g
 
 # MODEL_FILE=logistic_spark
 MODEL_FILE=logistic_dlsa
@@ -27,14 +27,14 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # for i in {256..4..-4}
 tic0=`date +"%Y-%m-%d-%T"`
-for executors in 12
+for executors in 24
 do
     tic=`date +%s`
     PYSPARK_PYTHON=python3 spark-submit \
                   --master yarn  \
                   --executor-memory ${EM}   \
                   --num-executors ${executors}      \
-                  --driver-memory 30g    \
+                  --driver-memory 50g    \
                   --executor-cores ${EC}    \
                   --conf spark.rpc.message.maxSize=2000 \
                   $DIR/../${MODEL_FILE}.py  \

@@ -76,7 +76,10 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[]):
             warnings.warn("Dummies:" + str(set(usecols_x) - set(x_train.columns))
                           + "missing in this data chunk " + str(x_train.shape)
                           + "Skip modeling this part of data.")
-            return pd.DataFrame(columns=usecols_full)
+
+            # return a zero fake matrix.
+            return pd.DataFrame(0,index=np.arange(len(usecols_x)),
+                                columns=usecols_full)
 
     else:
         x_train = sample_df.drop(['partition_id', Y_name], axis=1)
