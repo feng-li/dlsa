@@ -12,14 +12,41 @@
 ## est_dlsa <- read_pickle_file(dlsa)
 
 
-coef_matrix = read.table("coef.csv", header = FALSE, sep = ",")
+coef_matrix = read.table("coef.csv", header = TRUE, sep = ",")
 
-colnames(coef_matrix) = c("MLE", "DLSA_AIC", "DLSA_BIC", "WLSE", "ONE_HOT")
-par(mfrow = c(5, 1), mar = c(0, 5, 0, 0))
+# colnames(coef_matrix) = c("MLE", "DLSA_AIC", "DLSA_BIC", "WLSE", "ONE_HOT")
+par(mfrow = c(5, 1), mar = c(2, 5, 2, 0), las = 2)
 color = c("blue", "purple", "red", "gray", "cyan")
 
-for (i in c(4, 5, 1, 2, 3))
+for (i in 2:6)
 {
-    used_data = coef_matrix[-c(which.max(coef_matrix[, i]), which.max(coef_matrix[, i])), i]
-    barplot(used_data, ylab = colnames(coef_matrix)[i], col = "cyan", axes = FALSE)
+    # used_data = coef_matrix[-c(which.max(coef_matrix[, i]), which.max(coef_matrix[,
+                                        # i])), i]
+    used_data = coef_matrix[, i]
+
+    if (i != 2)
+    {
+        ylim = c(-0.02, 0.02)
+    }
+    else
+    {
+        ylim = c(-400, 400)
+    }
+
+    ## if (i == 6){
+    ## barplot(used_data, ylab = colnames(coef_matrix)[i], ylim = ylim,
+    ##         # xlab = coef_matrix[, 1],
+    ##         xpd = TRUE,
+    ##         las = 2,
+    ##         names.arg = 1:182,
+    ##         col = "cyan", axes = TRUE)
+    ## }
+    ## else
+    ## {
+    barplot(used_data, ylab = colnames(coef_matrix)[i], ylim = ylim,
+            xpd = TRUE,
+            las = 2,
+            col = "cyan", axes = TRUE)
+
+    ## }
 }
