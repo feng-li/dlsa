@@ -47,10 +47,15 @@ SGD_model = SGDClassifier(fit_intercept=fit_intercept, verbose=verbose,
 
 
 # numeric_column_names = ['ArrDelay', 'DayofMonth', 'DepTime', 'CRSDepTime', 'ArrTime', 'CRSArrTime',
-#                         'ActualElapsedTime', 'AirTime', 'DepDelay', 'Distance']
-with open(os.path.expanduser(dummy_info_path), "rb") as f:
-    dummy_info = pickle.load(f)
+#                         'ActualElapsedTime', 'DepDelay', 'Distance']
+dummy_info = pickle.load(open(os.path.expanduser(dummy_info_path), "rb"))
 convert_dummies = list(dummy_info['factor_selected'].keys())
+
+
+if len(data_info_path) > 0:
+    data_info = pd.read_csv(os.path.expanduser(data_info_path["path"]))
+    print("Descriptive statistics for data are loaded from file:\t" + data_info_path["path"])
+
 
 # The main SGD looping
 loop_counter = 0

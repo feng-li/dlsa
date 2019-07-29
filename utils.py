@@ -58,7 +58,7 @@ def clean_airlinedata(file_path, fit_intercept, dummy_info, data_info, sparse=Tr
         # Check if any dummy column is not in the data chunk.
         usecols_x0 = list(set(X_with_dummies.columns.drop([Y_name]))
                           - set(convert_dummies))
-        usecols_x = usecols_x.copy()
+        usecols_x = usecols_x0.copy()
         for i in convert_dummies:
             for j in dummy_info["factor_selected_names"][i][fit_intercept:]:
                 usecols_x.append(j)
