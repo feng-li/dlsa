@@ -64,6 +64,10 @@ using_data = "real_hdfs" # ["simulated_pdf", "real_pdf", "real_hdfs"
 partition_method = "systematic"
 model_saved_file_name = '~/running/logistic_dlsa_model_' + time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()) + '.pkl'
 
+# If save data descriptive statistics
+# data_info = []
+data_info_path = {'save': False, 'path': "~/running/data_raw/data_info.csv"}
+
 # Model settings
 #-----------------------------------------------------------------------------------------
 fit_intercept = True
@@ -79,6 +83,7 @@ if using_data in ["simulated_pdf"]:
     p = 200
     Y_name = "label"
     dummy_info = []
+    data_info = []
     convert_dummies = []
 
 elif  using_data in ["real_pdf", "real_hdfs"]:
@@ -91,7 +96,7 @@ elif  using_data in ["real_pdf", "real_hdfs"]:
     file_path = ['/running/data_raw/allfile.csv'] # HDFS file
 
     usecols_x = ['Year', 'Month', 'DayofMonth', 'DayOfWeek', 'DepTime', 'CRSDepTime',
-                 'CRSArrTime', 'UniqueCarrier', 'ActualElapsedTime', 'AirTime',
+                 'CRSArrTime', 'UniqueCarrier', 'ActualElapsedTime', # 'AirTime',
                  'Origin', 'Dest', 'Distance']
 
     schema_sdf = StructType([
@@ -129,8 +134,7 @@ elif  using_data in ["real_pdf", "real_hdfs"]:
 
 
     dummy_info_path = "~/running/data_raw/dummy_info.pkl"
-    with open(os.path.expanduser(dummy_info_path), "rb") as f:
-        dummy_info = pickle.load(f)
+    dummy_info = pickle.load(open(os.path.expanduser(dummy_info_path), "rb"))
     convert_dummies = list(dummy_info['factor_selected'].keys())
 
     n_files = len(file_path)
@@ -193,8 +197,9 @@ for file_no_i in range(n_files):
         data_sdf_i = data_sdf_i.select(usecols_x + [Y_name])
         data_sdf_i = data_sdf_i.dropna()
 
-        # Define or transform response variable
-        data_sdf_i = data_sdf_i.withColumn(Y_name,functions.when(data_sdf_i[Y_name] > 0, 1).otherwise(0))
+        # Define or transform response variable. Or use
+        # https://spark.apache.org/docs/latest/ml-features.html#binarizer
+        data_sdf_i = data_sdf_i.withColumn(Y_name,fusdfnctions.when(data_sdf_i[Y_name] > 0, 1).otherwise(0))
 
         # Replace dropped factors with `00_OTHERS`. The trick of `00_` prefix will allow
         # user to drop it as the first level when intercept is used.
@@ -249,8 +254,28 @@ for file_no_i in range(n_files):
 
 
 ##----------------------------------------------------------------------------------------
-## PARTITIONED LOGISTIC REGRESSION
+## MODELING ON PARTITIONED DATA
 ##----------------------------------------------------------------------------------------
+    # Descriptive statistics
+    if len(data_info_path) > 0:
+        if data_info_path["save"] == True:
+            data_info = data_sdf_i.describe().toPandas() # descriptive statistics
+            data_info.to_csv(os.path.expanduser(data_info_path["path"]), index=False)
+            print("Descriptive statistics for data are saved to:\t" + data_info_path["path"])
+        else:
+            data_info = pd.read_csv(os.path.expanduser(data_info_path["path"]))
+            print("Descriptive statistics for data are loaded from file:\t" + data_info_path["path"])
+
+
+    # Standardized the data. This requires 'requirement failed: Column Year must be of
+    # type org.apache.spark.ml.linalg.VectorUD. We do it with Map model.
+
+    # from pyspark.ml.feature import StandardScaler
+    # scaler = StandardScaler(inputCol="Distance", outputCol="scaledDistance",
+    #                         withStd=True, withMean=True)
+    # scalerModel = scaler.fit(data_sdf_i)
+    # scaledData = scalerModel.transform(data_sdf_i)
+
     tic_repartition = time.perf_counter()
     data_sdf_i = data_sdf_i.repartition(partition_num_sub[file_no_i], "partition_id")
     time_repartition_sub.append(time.perf_counter() - tic_repartition)
@@ -267,7 +292,8 @@ for file_no_i in range(n_files):
         return logistic_model(sample_df=sample_df,
                               Y_name=Y_name,
                               fit_intercept=fit_intercept,
-                              dummy_info=dummy_info)
+                              dummy_info=dummy_info,
+                              data_info=data_info)
 
     # pdb.set_trace()
     # partition the data and run the UDF

@@ -39,14 +39,13 @@ def simulate_logistic(sample_size, p, partition_method, partition_num):
 
     return data_pdf
 
-def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[]):
+def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], data_info=[]):
     '''Run logistic model on the partitioned data set
 
     '''
 
     # x_train = sample_df.drop(['label', 'row_id', 'partition_id'], axis=1)
     # sample_df = samle_df.dropna()
-
 
     # Special step to create a local dummy matrix
     if len(dummy_info) > 0:
@@ -60,8 +59,8 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[]):
         x_train = X_with_dummies.drop(['partition_id', Y_name], axis = 1)
 
         # Check if any dummy column is not in the data chunk.
-        usecols_x = list(set(sample_df.columns.drop(['partition_id', Y_name]))
-                         - set(convert_dummies))
+        usecols_x0 = list(set(x_train.columns) - set(convert_dummies))
+        usecols_x = usecols_x0.copy()
         for i in convert_dummies:
             for j in dummy_info["factor_selected_names"][i][fit_intercept:]:
                 usecols_x.append(j)
@@ -83,6 +82,13 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[]):
 
     else:
         x_train = sample_df.drop(['partition_id', Y_name], axis=1)
+        usecols_x0 = x_train.columns
+
+    # Standardize the data with global mean and variance
+    if len(data_info) > 0:
+        for i in usecols_x0:
+            x_train[i]=(x_train[i] - float(data_info[i][1])) / float(data_info[i][2])
+
 
     x_train.sort_index(axis=1, inplace=True)
 
