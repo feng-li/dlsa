@@ -50,14 +50,11 @@ def clean_airlinedata(file_path, fit_intercept, dummy_info, data_info, sparse=Tr
                 pdf.loc[:, i] = pdf.loc[:, i].replace(dummy_info['factor_dropped'][i], '00_OTHERS')
 
         X_with_dummies = pd.get_dummies(data=pdf, drop_first=fit_intercept,
-                                        # columns=['Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'], # 2, 4, 9, 17, 18
                                         columns=convert_dummies,
                                         sparse=sparse)
 
-
         # Check if any dummy column is not in the data chunk.
-        usecols_x0 = list(set(X_with_dummies.columns.drop([Y_name]))
-                          - set(convert_dummies))
+        usecols_x0 = list(set(pdf.columns.drop(Y_name)) - set(convert_dummies))
         usecols_x = usecols_x0.copy()
         for i in convert_dummies:
             for j in dummy_info["factor_selected_names"][i][fit_intercept:]:
