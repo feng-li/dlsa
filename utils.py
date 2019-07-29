@@ -5,7 +5,7 @@ import numpy as np
 import sys, os, pickle
 import warnings
 
-def clean_airlinedata(file_path, fit_intercept, dummy_info, sparse=True):
+def clean_airlinedata(file_path, fit_intercept, dummy_info, data_info, sparse=True):
     '''Function to clean airline data from
 
 
@@ -23,7 +23,7 @@ def clean_airlinedata(file_path, fit_intercept, dummy_info, sparse=True):
     '''
     Y_name = 'ArrDelay'
     pdf0 = pd.read_csv(file_path, error_bad_lines=False,
-                       usecols = [0,1,2,3,4,5,7,8,11,13,14,16,17,18],
+                       usecols = [0,1,2,3,4,5,7,8,11,14,16,17,18],
                        engine='c', # The C engine is faster
                        dtype={'Year': 'Int64',
                               'Month': 'Int64',
@@ -56,8 +56,9 @@ def clean_airlinedata(file_path, fit_intercept, dummy_info, sparse=True):
 
 
         # Check if any dummy column is not in the data chunk.
-        usecols_x = list(set(X_with_dummies.columns.drop([Y_name]))
-                         - set(convert_dummies))
+        usecols_x0 = list(set(X_with_dummies.columns.drop([Y_name]))
+                          - set(convert_dummies))
+        usecols_x = usecols_x.copy()
         for i in convert_dummies:
             for j in dummy_info["factor_selected_names"][i][fit_intercept:]:
                 usecols_x.append(j)
@@ -74,6 +75,13 @@ def clean_airlinedata(file_path, fit_intercept, dummy_info, sparse=True):
 
     else:
         X = pdf0.drop(Y_name,axis = 1)
+        usecols_x0 = X.columns
+
+    # Standardize the data
+    if len(data_info) > 0:
+        for i in usecols_x0:
+            X[i]=(X[i] - float(data_info[i][1])) / float(data_info[i][2])
+
 
     X.sort_index(axis=1, inplace=True)
     # Obtain labels

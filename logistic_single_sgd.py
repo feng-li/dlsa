@@ -27,6 +27,8 @@ file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in st
 
 model_saved_file_name = '~/running/logistic_sgd_model_' + time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()) + '.pkl'
 dummy_info_path = "~/running/data_raw/dummy_info.pkl"
+# If use data descriptive statistics to standardize the data. See logistic_dlsa.py()
+data_info_path = {'save': False, 'path': "~/running/data_raw/data_info.csv"}
 
 nBatches = 1000
 nEpochs = 5
@@ -58,7 +60,8 @@ for iEpoch in range(nEpochs):
 
         sample_df = clean_airlinedata(os.path.expanduser(file_path[file_number]),
                                       fit_intercept=fit_intercept,
-                                      dummy_info=dummy_info)
+                                      dummy_info=dummy_info,
+                                      data_info=data_info)
 
         # Create an full-column empty DataFrame and resize current subset
         # edf = pd.DataFrame(columns=convert_dummies)# empty df
@@ -71,6 +74,7 @@ for iEpoch in range(nEpochs):
         random.shuffle(total_idx)
 
         x_train = sample_df.drop([Y_name], axis=1)
+
         y_train = sample_df[Y_name]
         classes=np.unique(y_train)
 
