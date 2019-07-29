@@ -28,7 +28,7 @@ def dlsa_mapred(model_mapped_sdf):
     if groupped_pdf_sum.shape[0] == 0: # bad chunked models
 
         raise Exception("Zero-length grouped pandas DataFrame obtained, check the input.")
-        # out = pd.DataFrame(columns= ["par_byOLS", "par_byONEHOT"] + model_mapped_sdf.columns[3:])
+        # out = pd.DataFrame(columns= ["par_byOLS", "par_byONESHOT"] + model_mapped_sdf.columns[3:])
 
     else:
 
@@ -40,13 +40,13 @@ def dlsa_mapred(model_mapped_sdf):
                                     Sig_invMcoef_sum,
                                     rcond=None)[0] # least-squares solution
 
-        par_byONEHOT = groupped_pdf_sum['sum(coef)'] / model_mapped_sdf.rdd.getNumPartitions()
+        par_byONESHOT = groupped_pdf_sum['sum(coef)'] / model_mapped_sdf.rdd.getNumPartitions()
         p = len(Sig_invMcoef_sum)
 
         out = pd.DataFrame(np.concatenate((par_byOLS.reshape(p, 1),
-                                           np.asarray(par_byONEHOT).reshape(p, 1),
+                                           np.asarray(par_byONESHOT).reshape(p, 1),
                                            Sig_inv_sum), 1),
-                           columns= ["par_byOLS", "par_byONEHOT"] + model_mapped_sdf.columns[3:])
+                           columns= ["par_byOLS", "par_byONESHOT"] + model_mapped_sdf.columns[3:])
 
     return out
 
