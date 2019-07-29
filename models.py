@@ -59,7 +59,7 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], data_i
         x_train = X_with_dummies.drop(['partition_id', Y_name], axis = 1)
 
         # Check if any dummy column is not in the data chunk.
-        usecols_x0 = list(set(x_train.columns) - set(convert_dummies))
+        usecols_x0 = list(set(sample_df.columns.drop(['partition_id', Y_name])) - set(convert_dummies))
         usecols_x = usecols_x0.copy()
         for i in convert_dummies:
             for j in dummy_info["factor_selected_names"][i][fit_intercept:]:
