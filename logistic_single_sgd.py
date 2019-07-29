@@ -25,7 +25,12 @@ tic0 = time.perf_counter()
 # file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in string.ascii_lowercase[1:21]]
 file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in string.ascii_lowercase[0:21]]
 
-model_saved_file_name = '~/running/logistic_sgd_model_' + time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()) + '.pkl'
+# Model path
+model_saved_file_name = {
+    'load': False, # should or not to load a previously saved model to continue
+    'path': '~/running/logistic_sgd_model_' + time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()) + '.pkl'}
+
+# Dummy info
 dummy_info_path = "~/running/data_raw/dummy_info.pkl"
 # If use data descriptive statistics to standardize the data. See logistic_dlsa.py()
 data_info_path = {'save': False, 'path': "~/running/data_raw/data_info.csv"}
@@ -33,25 +38,33 @@ data_info_path = {'save': False, 'path': "~/running/data_raw/data_info.csv"}
 nBatches = 1000
 nEpochs = 5
 Y_name = 'ArrDelay'
-loss="log" # The ‘log’ loss gives logistic regression
-penalty = 'none' # str, ‘none’, ‘l2’, ‘l1’, or ‘elasticnet’
-average = True
-warm_start = True
-fit_intercept = True
-verbose = True
-n_jobs = -1 # Use all processors
-
-SGD_model = SGDClassifier(fit_intercept=fit_intercept, verbose=verbose,
-                          penalty=penalty, loss=loss, n_jobs=n_jobs,
-                          average=average, warm_start=warm_start)
 
 
-# numeric_column_names = ['ArrDelay', 'DayofMonth', 'DepTime', 'CRSDepTime', 'ArrTime', 'CRSArrTime',
-#                         'ActualElapsedTime', 'DepDelay', 'Distance']
+
+if model_saved_file_name['load'] == False:
+    loss="log" # The ‘log’ loss gives logistic regression
+    penalty = 'none' # str, ‘none’, ‘l2’, ‘l1’, or ‘elasticnet’
+    average = True
+    warm_start = True
+    fit_intercept = True
+    verbose = True
+    n_jobs = -1 # Use all processors
+
+    SGD_model = SGDClassifier(fit_intercept=fit_intercept, verbose=verbose,
+                              penalty=penalty, loss=loss, n_jobs=n_jobs,
+                              average=average, warm_start=warm_start)
+
+else: # load a previously save d model
+    SGD_model = pickle.load(open(os.path.expanduser(model_saved_file_name['path']), "rb"))
+
+
+
+# Read dummy info from file
 dummy_info = pickle.load(open(os.path.expanduser(dummy_info_path), "rb"))
 convert_dummies = list(dummy_info['factor_selected'].keys())
 
 
+# Read data info from file
 if len(data_info_path) > 0:
     data_info = pd.read_csv(os.path.expanduser(data_info_path["path"]))
     print("Descriptive statistics for data are loaded from file:\t" + data_info_path["path"])
@@ -83,8 +96,8 @@ for iEpoch in range(nEpochs):
         y_train = sample_df[Y_name]
         classes=np.unique(y_train)
 
-        print(x_train.shape)
-        print(x_train.columns)
+        print("Covariates used:\t" + str(list(x_train.columns)))
+        print("Data size in this chunk:\t" + str(x_train.shape))
 
         for iBatch in range(nBatches):
 
@@ -128,7 +141,7 @@ time_wallclock = time.perf_counter() - tic0
 
 ## Save model as file
 out = [SGD_model, x_train.columns]
-pickle.dump(out, open(os.path.expanduser(model_saved_file_name), 'wb'))
+pickle.dump(out, open(os.path.expanduser(model_saved_file_name["path"]), 'wb'))
 # out = [sample_size, p, memsize, time_parallelize, time_clusterrun, time_wallclock]
 # print(", ".join(format(x, "10.4f") for x in out))
 
