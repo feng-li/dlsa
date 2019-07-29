@@ -199,7 +199,7 @@ for file_no_i in range(n_files):
 
         # Define or transform response variable. Or use
         # https://spark.apache.org/docs/latest/ml-features.html#binarizer
-        data_sdf_i = data_sdf_i.withColumn(Y_name,fusdfnctions.when(data_sdf_i[Y_name] > 0, 1).otherwise(0))
+        data_sdf_i = data_sdf_i.withColumn(Y_name,functions.when(data_sdf_i[Y_name] > 0, 1).otherwise(0))
 
         # Replace dropped factors with `00_OTHERS`. The trick of `00_` prefix will allow
         # user to drop it as the first level when intercept is used.
