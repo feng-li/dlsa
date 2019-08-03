@@ -121,3 +121,67 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], data_i
 
     return out
     # return pd.DataFrame(Sig_inv)
+
+
+
+
+def logistic_model_eval(sample_df, Y_name, fit_intercept=False, par, dummy_info=[], data_info=[]):
+    '''Calculate the log-likelihood for logistic model on the partitioned data set
+
+    '''
+    if len(dummy_info) > 0:
+        convert_dummies = list(dummy_info['factor_selected'].keys())
+
+        X_with_dummies = pd.get_dummies(data=sample_df,
+                                        drop_first=fit_intercept,
+                                        columns=convert_dummies,
+                                        sparse=True)
+
+        x_train = X_with_dummies.drop(['partition_id', Y_name], axis = 1)
+
+        # Check if any dummy column is not in the data chunk.
+        usecols_x0 = list(set(sample_df.columns.drop(['partition_id', Y_name])) - set(convert_dummies))
+        usecols_x = usecols_x0.copy()
+        for i in convert_dummies:
+            for j in dummy_info["factor_selected_names"][i][fit_intercept:]:
+                usecols_x.append(j)
+        usecols_x.sort()
+        usecols_full = ['par_id', "coef", "Sig_invMcoef"]
+        usecols_full.extend(usecols_x)
+
+        # raise Exception("usecols_full:\t" + str(len(usecols_full)))
+        # raise Exception("usecols_x:\t" + str(usecols_x))
+
+        if set(x_train.columns) != set(usecols_x):
+            warnings.warn("Dummies:" + str(set(usecols_x) - set(x_train.columns))
+                          + "missing in this data chunk " + str(x_train.shape)
+                          + "Skip modeling this part of data.")
+
+
+            edf = pd.DataFrame(columns=convert_dummies)# empty df
+            x_train = x_train.append(edf, sort=True)
+            x_train.fillna(0, inplace = True) # Replace append-generated NaN with 0
+
+    else:
+        x_train = sample_df.drop(['partition_id', Y_name], axis=1)
+        usecols_x0 = x_train.columns
+
+
+    y_train = sample_df[Y_name]
+
+    if fit_intercept:
+        intercept = pd.DataFrame(1, index=range(sample_df.shape[0]), columns=['intercept'])
+        x_train = intercept.append(x_train, sort=False)
+
+
+    loglik = {}
+    for i in range(par.shape[1]):
+        par.columns
+        beta = par[, i] # p-by-1
+        prob = 1 / (1 + np.exp(-x_train.dot(beta))) # n-by-1
+        logdens = y_train * np.log(prob) + (1 - y_train) * np.log(1 - prob)
+        loglik[par.columns] = np.sum(logdens)
+
+
+    out = pd.DataFrame(loglik)
+    return(out)
