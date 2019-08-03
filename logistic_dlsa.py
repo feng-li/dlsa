@@ -324,22 +324,23 @@ tic_dlsa = time.perf_counter()
 out_dlsa = dlsa(Sig_inv_=Sig_inv_beta.iloc[:, 2:],
                 beta_=Sig_inv_beta["par_byOLS"],
                 sample_size=sample_size,
-                intercept=False)
-                # intercept=fit_intercept)
+                intercept=fit_intercept)
 
 time_dlsa = time.perf_counter() - tic_dlsa
 ##----------------------------------------------------------------------------------------
 ## Model Evaluation
 ##----------------------------------------------------------------------------------------
+tic_model_eval = time.perf_counter()
 
+out_par = out_dlsa
+out_par["par_byOLS"] = Sig_inv_beta["par_byOLS"]
+out_par["par_byONESHOT"] = Sig_inv_beta["par_byONESHOT"]
 
+model_eval = logistic_eval(data_sdf=data_sdf,
+                           par=out_par,
+                           fit_intercept=fit_intercept)
 
-
-
-
-
-
-
+time_model_eval = time.perf_counter() - tic_model_eval
 ##----------------------------------------------------------------------------------------
 ## PRINT OUTPUT
 ##----------------------------------------------------------------------------------------
@@ -370,7 +371,7 @@ print("Model results are saved to:\t" + model_saved_file_name)
 print("Model Summary:\n")
 print(out_time.to_string(index=False))
 print("\nDLSA Coefficients:\n")
-print(out_dlsa.to_string())
+print(out_par.to_string())
 
 # Verify with Pure R implementation.
 # numpy2ri.activate()
