@@ -77,7 +77,8 @@ def dlsa(Sig_inv_, beta_, sample_size, intercept=False):
 
 
     if intercept:
-        beta0 = np.array(robjects.FloatVector(dfitted.rx2("beta0")) + beta[0])
+        beta_byOLS = beta_
+        beta0 = np.array(robjects.FloatVector(dfitted.rx2("beta0")) + beta_byOLS[0])
         beta_byAIC = np.concatenate(beta0[AIC_minIdx], beta[AIC_minIdx, :])
         beta_byBIC = np.concatenate(beta0[BIC_minIdx], beta[BIC_minIdx, :])
     else:
