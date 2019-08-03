@@ -1,5 +1,10 @@
 #! /usr/bin/env python3
 
+from pyspark.sql.types import *
+import numpy as np
+import pandas as pd
+
+
 def logistic_eval(data_sdf, par, fit_intercept):
     """Evaluate model performance
 
@@ -23,10 +28,11 @@ def logistic_eval(data_sdf, par, fit_intercept):
                                    dummy_info=dummy_info,
                                    data_info=data_info)
 
+    # Calculate log likelihood for partitioned data
     model_mapped_sdf = data_sdf.groupby("partition_id").apply(logistic_model_eval_udf)
 
     # groupped_sdf = model_mapped_sdf.groupby('par_id')
-    groupped_sdf_sum = model_mapped_sdf.groupby().sum(*model_mapped_sdf.columns[1:]) #TODO: Error with Python < 3.7 for > 255 arguments. Location 0 is 'par_id'
+    groupped_sdf_sum = model_mapped_sdf.groupby().sum(*model_mapped_sdf.columns[0:])
     groupped_pdf_sum = groupped_sdf_sum.toPandas()
 
     return(groupped_pdf_sum)
