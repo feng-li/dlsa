@@ -99,9 +99,21 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], data_i
     model = LogisticRegression(solver="lbfgs", penalty="none", fit_intercept=fit_intercept)
     model.fit(x_train, y_train)
     prob = model.predict_proba(x_train)[:, 0]
-    p = model.coef_.size
 
-    coef = model.coef_.reshape(p, 1) # p-by-1
+    if fit_intercept:
+        p = model.coef_.size + 1
+        coef = np.concatenate([model.intercept_.respahe(1, 1),
+                               model.coef_], axis=1).reshape(p, 1)
+
+        intercept = pd.DataFrame(1, index=range(sample_df.shape[0]), columns=['intercept'])
+        x_train = intercept.append(x_train, sort=False)
+
+    else:
+        p = model.coef_.size
+        coef = model.coef_.reshape(p, 1) # p-by-1
+
+
+
     Sig_inv = x_train.T.dot(np.multiply((prob*(1-prob))[:,None],x_train)) # p-by-p
     Sig_invMcoef = Sig_inv.dot(coef) # p-by-1
 
@@ -167,13 +179,21 @@ def logistic_model_eval(sample_df, Y_name, fit_intercept=False, par, dummy_info=
         usecols_x0 = x_train.columns
 
 
+    # Standardize the data with global mean and variance
+    if len(data_info) > 0:
+        for i in usecols_x0:
+            x_train[i]=(x_train[i] - float(data_info[i][1])) / float(data_info[i][2])
+
+    # Extract y_train
     y_train = sample_df[Y_name]
 
+    # Special case to add intercept
     if fit_intercept:
         intercept = pd.DataFrame(1, index=range(sample_df.shape[0]), columns=['intercept'])
         x_train = intercept.append(x_train, sort=False)
 
 
+    # Calculate log likelihood
     loglik = {}
     for i in range(par.shape[1]):
         par.columns
@@ -181,7 +201,6 @@ def logistic_model_eval(sample_df, Y_name, fit_intercept=False, par, dummy_info=
         prob = 1 / (1 + np.exp(-x_train.dot(beta))) # n-by-1
         logdens = y_train * np.log(prob) + (1 - y_train) * np.log(1 - prob)
         loglik[par.columns] = np.sum(logdens)
-
 
     out = pd.DataFrame(loglik)
     return(out)
