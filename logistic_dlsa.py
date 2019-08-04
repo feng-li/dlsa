@@ -23,7 +23,7 @@ from pyspark.sql.functions import pandas_udf, PandasUDFType,  monotonically_incr
 from  dlsa import dlsa, dlsa_r, dlsa_mapred
 
 # os.chdir("dlsa") # TEMP code
-from  models import simulate_logistic, logistic_model
+from  models import simulate_logistic, logistic_model, logistic_model_eval
 from  utils import clean_airlinedata, insert_partition_id_pdf
 from  utils_spark import convert_schema
 
@@ -91,9 +91,9 @@ elif  using_data in ["real_pdf", "real_hdfs"]:
 #-----------------------------------------------------------------------------------------
     # file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in string.ascii_lowercase[0:21]] # local file
 
-    # file_path = ['/running/data_raw/xa' + str(letter) + '.csv' for letter in string.ascii_lowercase[0:21]] # HDFS file
+    file_path = ['/running/data_raw/xa' + str(letter) + '.csv' for letter in string.ascii_lowercase[0:1]] # HDFS file
 
-    file_path = ['/running/data_raw/allfile.csv'] # HDFS file
+    # file_path = ['/running/data_raw/allfile.csv'] # HDFS file
 
     usecols_x = ['Year', 'Month', 'DayofMonth', 'DayOfWeek', 'DepTime', 'CRSDepTime',
                  'CRSArrTime', 'UniqueCarrier', 'ActualElapsedTime', # 'AirTime',
@@ -336,7 +336,7 @@ out_par = out_dlsa
 out_par["par_byOLS"] = Sig_inv_beta["par_byOLS"]
 out_par["par_byONESHOT"] = Sig_inv_beta["par_byONESHOT"]
 
-model_eval = logistic_eval(data_sdf=data_sdf,
+model_eval = logistic_model_eval(data_sdf=data_sdf,
                            par=out_par,
                            fit_intercept=fit_intercept)
 

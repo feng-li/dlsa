@@ -24,6 +24,10 @@ def convert_schema(usecols_x, dummy_info, fit_intercept):
             for j in dummy_info["factor_selected_names"][i][fit_intercept:]:
                 schema_fields.append(StructField(j, DoubleType(), True))
 
+
+    if fit_intercept:
+        schema_fields.insert(0, StructField('intercept', DoubleType(), True))
+
     return schema_fields
 
 

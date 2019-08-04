@@ -102,11 +102,13 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], data_i
 
     if fit_intercept:
         p = model.coef_.size + 1
-        coef = np.concatenate([model.intercept_.respahe(1, 1),
+        coef = np.concatenate([model.intercept_.reshape(1, 1),
                                model.coef_], axis=1).reshape(p, 1)
 
-        intercept = pd.DataFrame(1, index=range(sample_df.shape[0]), columns=['intercept'])
-        x_train = intercept.append(x_train, sort=False)
+        intercept = pd.DataFrame(1, index=range(x_train.shape[0]), columns=['intercept'])
+        x_train = pd.concat([intercept, x_train], axis=1, sort=False).reset_index(drop=True)
+
+        # raise Exception(str(x_train.shape) + str(intercept.shape) + str(coef.shape) + str(prob.shape))
 
     else:
         p = model.coef_.size
@@ -137,7 +139,7 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], data_i
 
 
 
-def logistic_model_eval(sample_df, Y_name, fit_intercept=False, par, dummy_info=[], data_info=[]):
+def logistic_model_eval(sample_df, Y_name,  par, fit_intercept=False, dummy_info=[], data_info=[]):
     '''Calculate the log-likelihood for logistic model on the partitioned data set
 
     '''
@@ -189,15 +191,15 @@ def logistic_model_eval(sample_df, Y_name, fit_intercept=False, par, dummy_info=
 
     # Special case to add intercept
     if fit_intercept:
-        intercept = pd.DataFrame(1, index=range(sample_df.shape[0]), columns=['intercept'])
-        x_train = intercept.append(x_train, sort=False)
+        intercept = pd.DataFrame(1, index=range(x_train.shape[0]), columns=['intercept'])
+        x_train = pd.concat([intercept, x_train], axis=1, sort=False).reset_index(drop=True)
 
 
     # Calculate log likelihood
     loglik = {}
     for i in range(par.shape[1]):
         par.columns
-        beta = par[, i] # p-by-1
+        beta = par[:, i] # p-by-1
         prob = 1 / (1 + np.exp(-x_train.dot(beta))) # n-by-1
         logdens = y_train * np.log(prob) + (1 - y_train) * np.log(1 - prob)
         loglik[par.columns] = np.sum(logdens)
