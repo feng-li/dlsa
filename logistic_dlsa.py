@@ -93,9 +93,9 @@ elif  using_data in ["real_pdf", "real_hdfs"]:
 #-----------------------------------------------------------------------------------------
     # file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in string.ascii_lowercase[0:21]] # local file
 
-    file_path = ['/running/data_raw/xa' + str(letter) + '.csv' for letter in string.ascii_lowercase[0:1]] # HDFS file
+    # file_path = ['/running/data_raw/xa' + str(letter) + '.csv' for letter in string.ascii_lowercase[0:1]] # HDFS file
 
-    # file_path = ['/running/data_raw/allfile.csv'] # HDFS file
+    file_path = ['/running/data_raw/allfile.csv'] # HDFS file
 
     usecols_x = ['Year', 'Month', 'DayofMonth', 'DayOfWeek', 'DepTime', 'CRSDepTime',
                  'CRSArrTime', 'UniqueCarrier', 'ActualElapsedTime', # 'AirTime',
@@ -378,7 +378,8 @@ print("Model results are saved to:\t" + model_saved_file_name)
 print("\nModel Summary:\n")
 print(out_time.to_string(index=False))
 
-print("\nModel Evaluation:\n")
+print("\nModel Evaluation:")
+print("\tlog likelihood:\n")
 print(out_model_eval.to_string(index=False))
 
 print("\nDLSA Coefficients:\n")
