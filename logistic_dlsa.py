@@ -24,6 +24,8 @@ from  dlsa import dlsa, dlsa_r, dlsa_mapred
 
 # os.chdir("dlsa") # TEMP code
 from  models import simulate_logistic, logistic_model, logistic_model_eval
+from  model_eval import logistic_model_eval_sdf
+
 from  utils import clean_airlinedata, insert_partition_id_pdf
 from  utils_spark import convert_schema
 
@@ -336,9 +338,10 @@ out_par = out_dlsa
 out_par["par_byOLS"] = Sig_inv_beta["par_byOLS"]
 out_par["par_byONESHOT"] = Sig_inv_beta["par_byONESHOT"]
 
-model_eval = logistic_model_eval(data_sdf=data_sdf,
-                           par=out_par,
-                           fit_intercept=fit_intercept)
+model_eval = logistic_model_eval_sdf(
+    data_sdf=data_sdf_i,
+    par=out_par,
+    fit_intercept=fit_intercept)
 
 time_model_eval = time.perf_counter() - tic_model_eval
 ##----------------------------------------------------------------------------------------
@@ -370,6 +373,10 @@ print("Model results are saved to:\t" + model_saved_file_name)
 # print(", ".join(format(x, "10.2f") for x in out_time))
 print("Model Summary:\n")
 print(out_time.to_string(index=False))
+
+print("Model Evaluation:\n")
+print(model_eval.to_string(index=False))
+
 print("\nDLSA Coefficients:\n")
 print(out_par.to_string())
 

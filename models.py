@@ -96,7 +96,9 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], data_i
 
     y_train = sample_df[Y_name]
 
-    model = LogisticRegression(solver="lbfgs", penalty="none", fit_intercept=fit_intercept)
+    model = LogisticRegression(solver='newton-cg', # solver="lbfgs",
+                               penalty="none",
+                               fit_intercept=fit_intercept, max_iter=500)
     model.fit(x_train, y_train)
     prob = model.predict_proba(x_train)[:, 0]
 
@@ -168,8 +170,7 @@ def logistic_model_eval(sample_df, Y_name,  par, fit_intercept=False, dummy_info
 
         if set(x_train.columns) != set(usecols_x):
             warnings.warn("Dummies:" + str(set(usecols_x) - set(x_train.columns))
-                          + "missing in this data chunk " + str(x_train.shape)
-                          + "Skip modeling this part of data.")
+                          + "missing in this data chunk " + str(x_train.shape))
 
 
             edf = pd.DataFrame(columns=convert_dummies)# empty df
@@ -187,7 +188,7 @@ def logistic_model_eval(sample_df, Y_name,  par, fit_intercept=False, dummy_info
             x_train[i]=(x_train[i] - float(data_info[i][1])) / float(data_info[i][2])
 
     # Extract y_train
-    y_train = sample_df[Y_name]
+    y_train = np.asarray(sample_df[Y_name]).astype(np.float64).reshape(x_train.shape[0], 1)
 
     # Special case to add intercept
     if fit_intercept:
@@ -198,11 +199,10 @@ def logistic_model_eval(sample_df, Y_name,  par, fit_intercept=False, dummy_info
     # Calculate log likelihood
     loglik = {}
     for i in range(par.shape[1]):
-        par.columns
-        beta = par[:, i] # p-by-1
-        prob = 1 / (1 + np.exp(-x_train.dot(beta))) # n-by-1
-        logdens = y_train * np.log(prob) + (1 - y_train) * np.log(1 - prob)
-        loglik[par.columns] = np.sum(logdens)
+        beta = np.asarray(par.iloc[:, i]).reshape(par.shape[0], 1) # p-by-1
+        prob = 1 / (1 + np.exp((-x_train.dot(beta)).astype(np.float64))) # n-by-1
+        logdens = np.multiply(y_train, np.log(prob)) + np.multiply((1 - y_train), np.log(1 - prob))
+        loglik[par.columns[i]] = np.sum(logdens)
 
     out = pd.DataFrame(loglik)
     return(out)

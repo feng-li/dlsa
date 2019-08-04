@@ -77,12 +77,12 @@ def dlsa(Sig_inv_, beta_, sample_size, intercept=False):
 
 
     if intercept:
-        beta_byOLS = beta_
+        beta_byOLS = np.asarray(beta_)
         beta0 = np.array(robjects.FloatVector(dfitted.rx2("beta0")) + beta_byOLS[0])
-        beta_byAIC = np.concatenate(beta0[AIC_minIdx], beta[AIC_minIdx, :])
-        beta_byBIC = np.concatenate(beta0[BIC_minIdx], beta[BIC_minIdx, :])
+        beta_byAIC = np.hstack([beta0[AIC_minIdx], beta[AIC_minIdx, :]])
+        beta_byBIC = np.hstack([beta0[BIC_minIdx], beta[BIC_minIdx, :]])
     else:
         beta_byAIC = beta[AIC_minIdx, :]
         beta_byBIC = beta[BIC_minIdx, :]
 
-    return  pd.DataFrame({"beta_byAIC":beta_byAIC, "beta_byBIC": beta_byBIC})
+    return  pd.DataFrame({"beta_byAIC": beta_byAIC, "beta_byBIC": beta_byBIC})

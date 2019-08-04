@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 
-def logistic_eval(data_sdf, par, fit_intercept):
+def logistic_model_eval_sdf(data_sdf, par, fit_intercept):
     """Evaluate model performance
 
 
