@@ -23,7 +23,7 @@ from pyspark.sql.functions import pandas_udf, PandasUDFType,  monotonically_incr
 from  dlsa import dlsa, dlsa_r, dlsa_mapred
 
 # os.chdir("dlsa") # TEMP code
-from  models import simulate_logistic, logistic_model, logistic_model_eval
+from  models import simulate_logistic, logistic_model
 from  model_eval import logistic_model_eval_sdf
 
 from  utils import clean_airlinedata, insert_partition_id_pdf
@@ -326,7 +326,7 @@ tic_dlsa = time.perf_counter()
 out_dlsa = dlsa(Sig_inv_=Sig_inv_beta.iloc[:, 2:],
                 beta_=Sig_inv_beta["par_byOLS"],
                 sample_size=sample_size,
-                intercept=fit_intercept)
+                fit_intercept=fit_intercept)
 
 time_dlsa = time.perf_counter() - tic_dlsa
 ##----------------------------------------------------------------------------------------
@@ -338,10 +338,13 @@ out_par = out_dlsa
 out_par["par_byOLS"] = Sig_inv_beta["par_byOLS"]
 out_par["par_byONESHOT"] = Sig_inv_beta["par_byONESHOT"]
 
-model_eval = logistic_model_eval_sdf(
+out_model_eval = logistic_model_eval_sdf(
     data_sdf=data_sdf_i,
     par=out_par,
-    fit_intercept=fit_intercept)
+    fit_intercept=fit_intercept,
+    Y_name=Y_name,
+    dummy_info=dummy_info,
+    data_info=data_info)
 
 time_model_eval = time.perf_counter() - tic_model_eval
 ##----------------------------------------------------------------------------------------
@@ -353,29 +356,30 @@ time_repartition = sum(time_repartition_sub)
 # time_2sdf = sum(time_2sdf_sub)
 # sample_size_per_partition = sample_size / partition_num
 
-out_time = pd.DataFrame(
-    {"sample_size": sample_size,
-     "sample_size_per_partition": sample_size_per_partition,
-     "n_par": len(schema_beta) - 3,
-     "partition_num": partition_num,
-     "memsize_total": memsize_total,
-     # "time_2sdf": time_2sdf,
-     "time_repartition": time_repartition,
-     "time_mapred": time_mapred,
-     "time_dlsa": time_dlsa}, index=[0])
+out_time = pd.DataFrame({
+    "sample_size": sample_size,
+    "sample_size_per_partition": sample_size_per_partition,
+    "n_par": len(schema_beta) - 3,
+    "partition_num": partition_num,
+    "memsize_total": memsize_total,
+    # "time_2sdf": time_2sdf,
+    "time_repartition": time_repartition,
+    "time_mapred": time_mapred,
+    "time_dlsa": time_dlsa,
+    "time_model_eval": time_model_eval}, index=[0])
 
 # save the model to pickle, use pd.read_pickle("test.pkl") to load it.
 # out_dlas.to_pickle("test.pkl")
-out = [Sig_inv_beta, out_dlsa, out_time]
+out = [Sig_inv_beta, out_dlsa, out_par, out_model_eval, out_time]
 pickle.dump(out, open(os.path.expanduser(model_saved_file_name), 'wb'))
 print("Model results are saved to:\t" + model_saved_file_name)
 
 # print(", ".join(format(x, "10.2f") for x in out_time))
-print("Model Summary:\n")
+print("\nModel Summary:\n")
 print(out_time.to_string(index=False))
 
-print("Model Evaluation:\n")
-print(model_eval.to_string(index=False))
+print("\nModel Evaluation:\n")
+print(out_model_eval.to_string(index=False))
 
 print("\nDLSA Coefficients:\n")
 print(out_par.to_string())

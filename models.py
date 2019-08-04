@@ -188,7 +188,8 @@ def logistic_model_eval(sample_df, Y_name,  par, fit_intercept=False, dummy_info
             x_train[i]=(x_train[i] - float(data_info[i][1])) / float(data_info[i][2])
 
     # Extract y_train
-    y_train = np.asarray(sample_df[Y_name]).astype(np.float64).reshape(x_train.shape[0], 1)
+    # y_train = np.asarray(sample_df[Y_name]).astype(np.float64).reshape(x_train.shape[0], 1)
+    y_train = sample_df[Y_name].to_numpy()[:, None]
 
     # Special case to add intercept
     if fit_intercept:

@@ -58,7 +58,7 @@ lars_lsa=robjects.r['lars.lsa']
 dlsa_r=robjects.r['dlsa']
 
 # Python version
-def dlsa(Sig_inv_, beta_, sample_size, intercept=False):
+def dlsa(Sig_inv_, beta_, sample_size, fit_intercept=False):
     '''Distributed Least Squares Approximation
 
 
@@ -66,7 +66,7 @@ def dlsa(Sig_inv_, beta_, sample_size, intercept=False):
 
     numpy2ri.activate()
     dfitted = lars_lsa(np.asarray(Sig_inv_), np.asarray(beta_),
-                       intercept=intercept, n=sample_size)
+                       intercept=fit_intercept, n=sample_size)
     numpy2ri.deactivate()
 
     AIC = robjects.FloatVector(dfitted.rx2("AIC"))
@@ -76,9 +76,10 @@ def dlsa(Sig_inv_, beta_, sample_size, intercept=False):
     beta = np.array(robjects.FloatVector(dfitted.rx2("beta")))
 
 
-    if intercept:
-        beta_byOLS = np.asarray(beta_)
-        beta0 = np.array(robjects.FloatVector(dfitted.rx2("beta0")) + beta_byOLS[0])
+    if fit_intercept:
+        beta_byOLS = beta_.to_numpy()
+        beta0 = np.array(robjects.FloatVector(dfitted.rx2("beta0"))) + beta_byOLS[0]
+
         beta_byAIC = np.hstack([beta0[AIC_minIdx], beta[AIC_minIdx, :]])
         beta_byBIC = np.hstack([beta0[BIC_minIdx], beta[BIC_minIdx, :]])
     else:
