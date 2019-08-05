@@ -5,8 +5,8 @@ import os
 import pandas as pd
 import numpy as np
 
-sgd = "~/running/logistic_sgd_model_2019-07-28-00:41:39.pkl"
-dlsa = "~/running/logistic_dlsa_model_2019-07-28-00:37:41.pkl"
+sgd = "~/running/logistic_sgd_model_2019-07-29-11:12:04.pkl"
+dlsa = "~/running/logistic_dlsa_model_2019-08-05-01:12:30.pkl"
 
 est_sgd = pickle.load(open(os.path.expanduser(sgd), "rb"))
 est_dlsa = pd.read_pickle(os.path.expanduser(dlsa))

@@ -324,7 +324,7 @@ time_mapred = time.perf_counter() - tic_mapred
 
 tic_dlsa = time.perf_counter()
 out_dlsa = dlsa(Sig_inv_=Sig_inv_beta.iloc[:, 2:],
-                beta_=Sig_inv_beta["par_byOLS"],
+                beta_=Sig_inv_beta["beta_byOLS"],
                 sample_size=sample_size,
                 fit_intercept=fit_intercept)
 
@@ -335,8 +335,8 @@ time_dlsa = time.perf_counter() - tic_dlsa
 tic_model_eval = time.perf_counter()
 
 out_par = out_dlsa
-out_par["par_byOLS"] = Sig_inv_beta["par_byOLS"]
-out_par["par_byONESHOT"] = Sig_inv_beta["par_byONESHOT"]
+out_par["beta_byOLS"] = Sig_inv_beta["beta_byOLS"]
+out_par["beta_byONESHOT"] = Sig_inv_beta["beta_byONESHOT"]
 
 out_model_eval = logistic_model_eval_sdf(
     data_sdf=data_sdf_i,
@@ -388,10 +388,10 @@ print(out_par.to_string())
 # Verify with Pure R implementation.
 # numpy2ri.activate()
 # out_dlsa_r = dlsa_r(Sig_inv_=np.asarray(Sig_inv_beta.iloc[:, 2:]),
-#                     beta_=np.asarray(Sig_inv_beta["par_byOLS"]),
+#                     beta_=np.asarray(Sig_inv_beta["beta_byOLS"]),
 #                     sample_size=data_sdf.count(), intercept=False)
 # numpy2ri.deactivate()
 
 # out_dlsa = dlsa(Sig_inv_=Sig_inv,
-#                 beta_=par_byOLS,
+#                 beta_=beta_byOLS,
 #                 sample_size=data_sdf.count(), intercept=False)

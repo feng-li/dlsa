@@ -28,25 +28,25 @@ def dlsa_mapred(model_mapped_sdf):
     if groupped_pdf_sum.shape[0] == 0: # bad chunked models
 
         raise Exception("Zero-length grouped pandas DataFrame obtained, check the input.")
-        # out = pd.DataFrame(columns= ["par_byOLS", "par_byONESHOT"] + model_mapped_sdf.columns[3:])
+        # out = pd.DataFrame(columns= ["beta_byOLS", "beta_byONESHOT"] + model_mapped_sdf.columns[3:])
 
     else:
 
         Sig_invMcoef_sum = groupped_pdf_sum.iloc[:,2]
         Sig_inv_sum = groupped_pdf_sum.iloc[:,3:]
 
-        # par_byOLS = np.linalg.solve(Sig_inv_sum, Sig_invMcoef_sum)
-        par_byOLS = np.linalg.lstsq(Sig_inv_sum,
-                                    Sig_invMcoef_sum,
-                                    rcond=None)[0] # least-squares solution
+        # beta_byOLS = np.linalg.solve(Sig_inv_sum, Sig_invMcoef_sum)
+        beta_byOLS = np.linalg.lstsq(Sig_inv_sum,
+                                     Sig_invMcoef_sum,
+                                     rcond=None)[0] # least-squares solution
 
-        par_byONESHOT = groupped_pdf_sum['sum(coef)'] / model_mapped_sdf.rdd.getNumPartitions()
+        beta_byONESHOT = groupped_pdf_sum['sum(coef)'] / model_mapped_sdf.rdd.getNumPartitions()
         p = len(Sig_invMcoef_sum)
 
-        out = pd.DataFrame(np.concatenate((par_byOLS.reshape(p, 1),
-                                           np.asarray(par_byONESHOT).reshape(p, 1),
+        out = pd.DataFrame(np.concatenate((beta_byOLS.reshape(p, 1),
+                                           np.asarray(beta_byONESHOT).reshape(p, 1),
                                            Sig_inv_sum), 1),
-                           columns= ["par_byOLS", "par_byONESHOT"] + model_mapped_sdf.columns[3:])
+                           columns= ["beta_byOLS", "beta_byONESHOT"] + model_mapped_sdf.columns[3:])
 
     return out
 
