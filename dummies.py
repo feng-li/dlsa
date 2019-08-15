@@ -53,6 +53,6 @@ if __name__ == "__main__":
     dummy_info = select_dummy_factors(
         pdf,
         dummy_columns=['Year', 'Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'],
-        keep_top= [0.9, 1, 1, 0.8, 0.9, 0.9],
+        keep_top= [1, 1, 1, 0.8, 0.9, 0.9],
         replace_with='00_OTHERS',
         pickle_file='~/running/data_raw/dummy_info_latest.pkl')
