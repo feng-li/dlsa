@@ -6,7 +6,7 @@
 TARGET_DIR=~/running/data
 
 cd $TARGET_DIR
-for year in 1 {1987..2008..1}
+for year in {1987..2008..1}
 do
 
     wget http://stat-computing.org/dataexpo/2009/${year}.csv.bz2
