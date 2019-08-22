@@ -1,6 +1,6 @@
 # `dlsa`: Distributed Least Squares Approximation implemented with Apache Spark
 
-# Requirements
+# System Requirements
 
 - `Spark >= 2.3.1`
 - `Python >= 3.7.0`
@@ -24,4 +24,4 @@
 
 # References
 
-- Zhu, X., Li, F., & Wang, H., (2019) Least Squares Approximation for a Distributed System. [_Working Paper_](https://arxiv.org/abs/1908.04904).
+- [Zhu, X.](https://xueningzhu.github.io/), [Li, F.](http://feng.li/), & [Wang, H.](http://hansheng.gsm.pku.edu.cn/), (2019) Least Squares Approximation for a Distributed System. [_Working Paper_](https://arxiv.org/abs/1908.04904).
