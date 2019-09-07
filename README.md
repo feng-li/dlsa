@@ -1,4 +1,5 @@
-# `dlsa`: Distributed Least Squares Approximation implemented with Apache Spark
+# `dlsa`
+Distributed Least Squares Approximation implemented with Apache Spark
 
 # System Requirements
 
