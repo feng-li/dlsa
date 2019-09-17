@@ -24,13 +24,21 @@ for (i in 2:6)
                                         # i])), i]
     used_data = coef_matrix[, i]
 
+    if (i == 4)
+    {
+        used_data[abs(used_data) < 0.1] = 0
+        ## ylim = c(-0.02, 0.02)
+    }
+
+
+
     if (i != 2)
     {
-        ylim = c(-0.02, 0.02)
+        # ylim = c(-0.02, 0.02)
     }
     else
     {
-        ylim = c(-400, 400)
+       #  ylim = c(-400, 400)
     }
 
     ## if (i == 6){
@@ -43,10 +51,18 @@ for (i in 2:6)
     ## }
     ## else
     ## {
-    barplot(used_data, ylab = colnames(coef_matrix)[i], ylim = ylim,
+    barplot(used_data, ylab = colnames(coef_matrix)[i], # ylim = ylim,
             xpd = TRUE,
             las = 2,
             col = "cyan", axes = TRUE)
 
     ## }
 }
+
+
+
+
+
+
+
+ plot(coef_matrix[, 6], coef_matrix[, 5], pch = 20, col = "blue", xlab = "ONE_SHOT", ylab = "WLSE")
