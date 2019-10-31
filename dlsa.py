@@ -13,8 +13,10 @@ from pyspark.sql.functions import pandas_udf, PandasUDFType
 
 # import pdb
 
+
 def dlsa_mapred(model_mapped_sdf):
     '''MapReduce for partitioned data with given model
+
 
     '''
     # mapped_pdf = model_mapped_sdf.toPandas()
@@ -57,6 +59,7 @@ lars_lsa=robjects.r['lars.lsa']
 # R version
 dlsa_r=robjects.r['dlsa']
 
+
 # Python version
 def dlsa(Sig_inv_, beta_, sample_size, fit_intercept=False):
     '''Distributed Least Squares Approximation
@@ -75,7 +78,6 @@ def dlsa(Sig_inv_, beta_, sample_size, fit_intercept=False):
     BIC_minIdx = np.argmin(BIC)
     beta = np.array(robjects.FloatVector(dfitted.rx2("beta")))
 
-
     if fit_intercept:
         beta_byOLS = beta_.to_numpy()
         beta0 = np.array(robjects.FloatVector(dfitted.rx2("beta0"))) + beta_byOLS[0]
@@ -86,4 +88,4 @@ def dlsa(Sig_inv_, beta_, sample_size, fit_intercept=False):
         beta_byAIC = beta[AIC_minIdx, :]
         beta_byBIC = beta[BIC_minIdx, :]
 
-    return  pd.DataFrame({"beta_byAIC": beta_byAIC, "beta_byBIC": beta_byBIC})
+    return pd.DataFrame({"beta_byAIC": beta_byAIC, "beta_byBIC": beta_byBIC})
