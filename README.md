@@ -13,7 +13,7 @@ Distributed Least Squares Approximation implemented with Apache Spark
 
   See [`setup.py`](setup.py) for detailed requirements.
 
-# Run the code on the Spark platform
+# Run the [PySpark](https://spark.apache.org/docs/latest/api/python/index.html) code on the Spark platform
 ```sh
   ./bash/spark_dlsa_run.sh
  ```
