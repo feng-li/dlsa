@@ -23,5 +23,5 @@ setup(name='dlsa',
           'rpy2    >= 3.0.4',
       ],
       zip_safe=False,
-      python_requires='>=3.6',
+      python_requires='>=3.7',
 )
