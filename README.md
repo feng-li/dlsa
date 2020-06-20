@@ -5,10 +5,11 @@ Distributed Least Squares Approximation implemented with Apache Spark
 
 - `Spark >= 2.3.1`
 - `Python >= 3.7.0`
+  - `pyarrow >= 0.15.0` Please read this [compatible issue with Spark 2.3.x or 2.4.x](https://spark.apache.org/docs/latest/sql-pyspark-pandas-with-arrow.html#compatibility-setting-for-pyarrow--0150-and-spark-23x-24x)
   - `scikit-learn >= 0.21.2`
-  - `rpy2 >= 3.0.4`
+  - `rpy2 >= 3.0.4` (optional)
 
-- `R >= 3.5`
+- `R >= 3.5` (optional)
   - `lars`
 
   See [`setup.py`](setup.py) for detailed requirements.
