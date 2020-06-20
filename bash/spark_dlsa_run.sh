@@ -30,7 +30,7 @@ tic0=`date +"%Y-%m-%d-%T"`
 for executors in 24
 do
     tic=`date +%s`
-    PYSPARK_PYTHON=python3 spark-submit \
+    PYSPARK_PYTHON=python3 ARROW_PRE_0_15_IPC_FORMAT=1 spark-submit \
                   --master yarn  \
                   --executor-memory ${EM}   \
                   --num-executors ${executors}      \
