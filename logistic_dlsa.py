@@ -1,9 +1,11 @@
 #! /usr/bin/env python3
 
-import findspark
-findspark.init("/usr/lib/spark-current")
+# import findspark
+# findspark.init("/usr/lib/spark-current")
 
 import pyspark
+conf = pyspark.SparkConf().setAppName("Spark DLSA App").setExecutorEnv('ARROW_PRE_0_15_IPC_FORMAT', '1') # PyArrow compatibility https://spark.apache.org/docs/latest/sql-pyspark-pandas-with-arrow.html#compatibility-setting-for-pyarrow--0150-and-spark-23x-24x
+spark = pyspark.sql.SparkSession.builder.config(conf=conf).getOrCreate()
 
 import os, sys, time
 from datetime import timedelta
@@ -32,8 +34,6 @@ from  utils_spark import convert_schema
 from sklearn.linear_model import LogisticRegression
 
 from rpy2.robjects import numpy2ri
-
-spark = pyspark.sql.SparkSession.builder.appName("Spark DLSA App").getOrCreate()
 
 # Enable Arrow-based columnar data transfers
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
