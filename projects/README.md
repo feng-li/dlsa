@@ -5,7 +5,7 @@
 
 For illustration purposes, we study a large real-world dataset. Specifically, the dataset
 considered here is the U.S. Airline Dataset. The dataset is available at
-\url{http://stat-computing.org/dataexpo/2009}. It contains detailed flight information
+http://stat-computing.org/dataexpo/2009. It contains detailed flight information
 about U.S. airlines from 1987 to 2008. 
 
 
