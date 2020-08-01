@@ -34,4 +34,7 @@ to have a mean of zero and a variance of one.
 
 ## Run with Spark
 
+```sh
+sh bash/spark_dlsa_run.sh
+```
 
