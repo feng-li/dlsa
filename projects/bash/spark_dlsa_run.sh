@@ -23,6 +23,12 @@ OUTPATH=~/running/
 # Get current dir path for this script
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
+# Zip dlsa for uploading
+cd $DIR/../../
+rm -rf projects/dlsa.zip
+zip -r projects/dlsa.zip  dlsa/ setup.py -x "**/__pycache__/*" "**/.git/**" 
+cd -;
+
 # for i in 1 {4..100..4} # 1, 5, 10, 15, ... , 100
 
 # for i in {256..4..-4}

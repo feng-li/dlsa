@@ -6,6 +6,7 @@
 import pyspark
 conf = pyspark.SparkConf().setAppName("Spark DLSA App").setExecutorEnv('ARROW_PRE_0_15_IPC_FORMAT', '1') # PyArrow compatibility https://spark.apache.org/docs/latest/sql-pyspark-pandas-with-arrow.html#compatibility-setting-for-pyarrow--0150-and-spark-23x-24x
 spark = pyspark.sql.SparkSession.builder.config(conf=conf).getOrCreate()
+spark.sparkContext.addPyFile("dlsa.zip")
 
 import os, sys, time
 from datetime import timedelta
@@ -41,8 +42,8 @@ spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "true")
 
 
 # FIXME: PATH BUG
-spark.sparkContext.addPyFile("/home/lifeng/code/dlsa/models.py")
-spark.sparkContext.addPyFile("/home/lifeng/code/dlsa/utils.py")
+# spark.sparkContext.addPyFile("/home/lifeng/code/dlsa/models.py")
+# spark.sparkContext.addPyFile("/home/lifeng/code/dlsa/utils.py")
 
 # BASH compatible
 # spark.sparkContext.addPyFile(os.path.dirname(os.path.abspath(__file__)) + "/models.py")
