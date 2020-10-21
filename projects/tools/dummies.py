@@ -49,10 +49,11 @@ def cumsum_dicts(dict1, dict2):
     return dict_new
 
 
-def select_dummy_factors(dummy_dict, keep_top, replace_with):
+def select_dummy_factors(dummy_dict, keep_top, replace_with, pickle_file):
     '''Merge dummy key with frequency in the given file
 
-    keep_top: dict
+    dummy_dict: dummy information in a dictionary format
+    keep_top: list
 
     '''
     dummy_columns_name = list(dummy_dict)
@@ -93,30 +94,46 @@ def select_dummy_factors(dummy_dict, keep_top, replace_with):
                   'factor_dropped': factor_dropped,
                   'factor_selected_names': factor_selected_names}
 
-    # pickle.dump(dummy_info, open(os.path.expanduser(pickle_file), 'wb'))
-    # print("dummy_info saved in:\t" + pickle_file)
+    pickle.dump(dummy_info, open(os.path.expanduser(pickle_file), 'wb'))
+    print("dummy_info saved in:\t" + pickle_file)
 
     return dummy_info
 
 
 if __name__ == "__main__":
 
+    # User settings
+    file = os.path.expanduser("~/running/data/airdelay_dummies_small.csv")
+    header = True
+    dummy_columns = ['Year', 'Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest']
+    keep_top = [1, 1, 1, 0.8, 0.8, 0.8]
+    replace_with = '00_OTHERS'
+    pickle_file = os.path.expanduser("~/running/data/airdelay_dummy_info_latest.pkl")
+
+    # Main loops
     dummy_dict = {}
-    for line in sys.stdin:
+    buffer_num = 0
+    with open(file) as f:
+        while True:
+            buffer = f.readlines(1024000) # Returns *at most* 1024000 bytes, maybe less
+            if len(buffer) == 0:
+                break
+            else:
+                buffer_list = [x[:-1].split(",")  for x in buffer]
 
-        pdf = pd.read_csv(os.path.expanduser("~/running/data/airdelay_data/dummies_full.csv.xz"),
-                          error_bad_lines=False,
-                          header=0,
-                          engine='c')  # The C engine is faster
+                buffer_num += 1
+                if ((buffer_num == 1) & (header is True)):
+                    buffer_header = buffer_list[0]
+                    buffer_starts = 1
+                else:
+                    buffer_starts = 0
 
-        dummy_dict_new = dummy_factors_counts(
-            pdf=pdf,
-            dummy_columns=['Year', 'Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'])
+                buffer_pdf = pd.DataFrame(buffer_list[buffer_starts:])
+                if header is True:
+                    buffer_pdf.columns = buffer_header
 
-        dummy_dict = cumsum_dicts(dummy_dict, dummy_dict_new)
+                dummy_dict_new = dummy_factors_counts(buffer_pdf, dummy_columns)
 
-    dummy_info = select_dummy_factors(
-        dummy_dict=dummy_dict,
-        keep_top= [1, 1, 1, 0.8, 0.9, 0.9],
-        replace_with='00_OTHERS',
-        pickle_file='~/running/data/airdelay_data/dummy_info_latest.pkl')
+                dummy_dict = cumsum_dicts(dummy_dict, dummy_dict_new)
+
+    dummy_info = select_dummy_factors(dummy_dict, keep_top, replace_with, pickle_file)
