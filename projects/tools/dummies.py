@@ -31,15 +31,20 @@ def dummy_factors_counts(pdf, dummy_columns):
 
     return factor_counts
 
+
 def cumsum_dicts(dict1, dict2):
     '''Merge two dictionaries and accumulate the sum for the same key where each dictionary
     containing sub-dictionaries with elements and counts.
 
     '''
-    dict_new = {}
-
-    for i in dict1.keys():
-        dict_new[i] = dict(Counter(dict1[i])+Counter(dict2[i]))
+    if len(dict1) == 0:
+        dict_new = dict2
+    elif len(dict1) == 0:
+        dict_new = dict2
+    else:
+        dict_new = {}
+        for i in dict1.keys():
+            dict_new[i] = dict(Counter(dict1[i])+Counter(dict2[i]))
 
     return dict_new
 
