@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 
-SOURCE=~/running/data_raw/
+SOURCE=~/running/data/
 
 # Get current dir path for this script
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
