@@ -16,27 +16,25 @@ from pyspark.ml.feature import VectorAssembler
 
 from dlsa import simulate_logistic
 
-spark = pyspark.sql.SparkSession.builder.appName("Spark Native Logistic Regression App").getOrCreate()
+spark = pyspark.sql.SparkSession.builder.appName(
+    "Spark Native Logistic Regression App").getOrCreate()
 
 tic0 = time.clock()
 ##----------------------------------------------------------------------------------------
 ## Logistic Regression with SGD
 ##----------------------------------------------------------------------------------------
-sample_size=5000
-p=50
-partition_method="systematic"
-partition_num=20
+sample_size = 5000
+p = 50
+partition_method = "systematic"
+partition_num = 20
 
-data_pdf = simulate_logistic(sample_size, p,
-                             partition_method,
-                             partition_num)
+data_pdf = simulate_logistic(sample_size, p, partition_method, partition_num)
 data_sdf = spark.createDataFrame(data_pdf)
 
 memsize = sys.getsizeof(data_pdf)
 
-assembler = VectorAssembler(
-    inputCols=["x" + str(x) for x in range(p)],
-    outputCol="features")
+assembler = VectorAssembler(inputCols=["x" + str(x) for x in range(p)],
+                            outputCol="features")
 
 tic = time.clock()
 parsedData = assembler.transform(data_sdf)
@@ -56,5 +54,7 @@ print(lrModel.coefficients)
 
 time_wallclock = time.clock() - tic0
 
-out = [sample_size, p, memsize, time_parallelize, time_clusterrun, time_wallclock]
+out = [
+    sample_size, p, memsize, time_parallelize, time_clusterrun, time_wallclock
+]
 print(", ".join(format(x, "10.4f") for x in out))

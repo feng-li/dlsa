@@ -4,7 +4,9 @@
 # findspark.init("/usr/lib/spark-current")
 
 import pyspark
-conf = pyspark.SparkConf().setAppName("Spark DLSA App").setExecutorEnv('ARROW_PRE_0_15_IPC_FORMAT', '1') # PyArrow compatibility https://spark.apache.org/docs/latest/sql-pyspark-pandas-with-arrow.html#compatibility-setting-for-pyarrow--0150-and-spark-23x-24x
+conf = pyspark.SparkConf().setAppName("Spark DLSA App").setExecutorEnv(
+    'ARROW_PRE_0_15_IPC_FORMAT', '1'
+)  # PyArrow compatibility https://spark.apache.org/docs/latest/sql-pyspark-pandas-with-arrow.html#compatibility-setting-for-pyarrow--0150-and-spark-23x-24x
 spark = pyspark.sql.SparkSession.builder.config(conf=conf).getOrCreate()
 spark.sparkContext.addPyFile("dlsa.zip")
 
@@ -21,16 +23,16 @@ from math import ceil
 
 from pyspark.sql.types import *
 from pyspark.sql import functions
-from pyspark.sql.functions import pandas_udf, PandasUDFType,  monotonically_increasing_id
+from pyspark.sql.functions import pandas_udf, PandasUDFType, monotonically_increasing_id
 
-from  dlsa import dlsa, dlsa_r, dlsa_mapred
+from dlsa import dlsa, dlsa_r, dlsa_mapred
 
 # os.chdir("dlsa") # TEMP code
-from  models import simulate_logistic, logistic_model
-from  model_eval import logistic_model_eval_sdf
+from models import simulate_logistic, logistic_model
+from model_eval import logistic_model_eval_sdf
 
-from  utils import clean_airlinedata, insert_partition_id_pdf
-from  utils_spark import convert_schema
+from utils import clean_airlinedata, insert_partition_id_pdf
+from utils_spark import convert_schema
 
 from sklearn.linear_model import LogisticRegression
 
@@ -39,7 +41,6 @@ from rpy2.robjects import numpy2ri
 # Enable Arrow-based columnar data transfers
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
 spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "true")
-
 
 # FIXME: PATH BUG
 # spark.sparkContext.addPyFile("/home/lifeng/code/dlsa/models.py")
@@ -63,9 +64,10 @@ spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "true")
 
 # General  settings
 #-----------------------------------------------------------------------------------------
-using_data = "real_hdfs" # ["simulated_pdf", "real_pdf", "real_hdfs"
+using_data = "real_hdfs"  # ["simulated_pdf", "real_pdf", "real_hdfs"
 partition_method = "systematic"
-model_saved_file_name = '~/running/logistic_dlsa_model_' + time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()) + '.pkl'
+model_saved_file_name = '~/running/logistic_dlsa_model_' + time.strftime(
+    "%Y-%m-%d-%H:%M:%S", time.localtime()) + '.pkl'
 
 # If save data descriptive statistics
 # data_info = []
@@ -79,7 +81,7 @@ fit_intercept = True
 #-----------------------------------------------------------------------------------------
 if using_data in ["simulated_pdf"]:
 
-    n_files = 100 # Sequential loop to avoid Spark OUT_OF_MEM problem
+    n_files = 100  # Sequential loop to avoid Spark OUT_OF_MEM problem
     partition_num_sub = 20
     sample_size_sub = 100000
     sample_size_per_partition = sample_size_sub / partition_num_sub
@@ -89,18 +91,29 @@ if using_data in ["simulated_pdf"]:
     data_info = []
     convert_dummies = []
 
-elif  using_data in ["real_pdf", "real_hdfs"]:
-#  Settings for using real data
-#-----------------------------------------------------------------------------------------
+elif using_data in ["real_pdf", "real_hdfs"]:
+    #  Settings for using real data
+    #-----------------------------------------------------------------------------------------
     # file_path = ['~/running/data_raw/xa' + str(letter) + '.csv.bz2' for letter in string.ascii_lowercase[0:21]] # local file
 
     # file_path = ['/running/data_raw/xa' + str(letter) + '.csv' for letter in string.ascii_lowercase[0:1]] # HDFS file
 
-    file_path = ['/running/data_raw/allfile.csv'] # HDFS file
+    file_path = ['/running/data_raw/allfile.csv']  # HDFS file
 
-    usecols_x = ['Year', 'Month', 'DayofMonth', 'DayOfWeek', 'DepTime', 'CRSDepTime',
-                 'CRSArrTime', 'UniqueCarrier', 'ActualElapsedTime', # 'AirTime',
-                 'Origin', 'Dest', 'Distance']
+    usecols_x = [
+        'Year',
+        'Month',
+        'DayofMonth',
+        'DayOfWeek',
+        'DepTime',
+        'CRSDepTime',
+        'CRSArrTime',
+        'UniqueCarrier',
+        'ActualElapsedTime',  # 'AirTime',
+        'Origin',
+        'Dest',
+        'Distance'
+    ]
 
     schema_sdf = StructType([
         StructField('Year', IntegerType(), True),
@@ -115,26 +128,25 @@ elif  using_data in ["real_pdf", "real_hdfs"]:
         StructField('FlightNum', StringType(), True),
         StructField('TailNum', StringType(), True),
         StructField('ActualElapsedTime', DoubleType(), True),
-        StructField('CRSElapsedTime',  DoubleType(), True),
-        StructField('AirTime',  DoubleType(), True),
-        StructField('ArrDelay',  DoubleType(), True),
-        StructField('DepDelay',  DoubleType(), True),
+        StructField('CRSElapsedTime', DoubleType(), True),
+        StructField('AirTime', DoubleType(), True),
+        StructField('ArrDelay', DoubleType(), True),
+        StructField('DepDelay', DoubleType(), True),
         StructField('Origin', StringType(), True),
-        StructField('Dest',  StringType(), True),
-        StructField('Distance',  DoubleType(), True),
-        StructField('TaxiIn',  DoubleType(), True),
-        StructField('TaxiOut',  DoubleType(), True),
-        StructField('Cancelled',  IntegerType(), True),
-        StructField('CancellationCode',  StringType(), True),
-        StructField('Diverted',  IntegerType(), True),
+        StructField('Dest', StringType(), True),
+        StructField('Distance', DoubleType(), True),
+        StructField('TaxiIn', DoubleType(), True),
+        StructField('TaxiOut', DoubleType(), True),
+        StructField('Cancelled', IntegerType(), True),
+        StructField('CancellationCode', StringType(), True),
+        StructField('Diverted', IntegerType(), True),
         StructField('CarrierDelay', DoubleType(), True),
-        StructField('WeatherDelay',  DoubleType(), True),
-        StructField('NASDelay',  DoubleType(), True),
-        StructField('SecurityDelay',  DoubleType(), True),
-        StructField('LateAircraftDelay',  DoubleType(), True)
+        StructField('WeatherDelay', DoubleType(), True),
+        StructField('NASDelay', DoubleType(), True),
+        StructField('SecurityDelay', DoubleType(), True),
+        StructField('LateAircraftDelay', DoubleType(), True)
     ])
     # s = spark.read.schema("col0 INT, col1 DOUBLE")
-
 
     dummy_info_path = "~/running/data_raw/dummy_info.pkl"
     dummy_info = pickle.load(open(os.path.expanduser(dummy_info_path), "rb"))
@@ -142,7 +154,7 @@ elif  using_data in ["real_pdf", "real_hdfs"]:
 
     n_files = len(file_path)
     partition_num_sub = []
-    max_sample_size_per_sdf = 100000 # No effect with `real_hdfs` data
+    max_sample_size_per_sdf = 100000  # No effect with `real_hdfs` data
     sample_size_per_partition = 100000
 
     Y_name = "ArrDelay"
@@ -158,60 +170,68 @@ loop_counter = 0
 for file_no_i in range(n_files):
     tic_2sdf = time.perf_counter()
 
-    if  using_data == "simulated_pdf":
+    if using_data == "simulated_pdf":
         if file_no_i == 0:
             # To test performance, we only simulate one subset of data and replicated it.
             data_pdf_i = simulate_logistic(sample_size_sub[0], p,
-                                           partition_method,
-                                           partition_num_sub)
+                                           partition_method, partition_num_sub)
             memsize_sub0 = sys.getsizeof(data_pdf_i)
         else:
             sample_size_sub.append(sample_size_sub[0])
             memsize_sub.append(memsize_sub0)
             partition_num_sub.append(partition_num_sub[0])
 
-    elif  using_data == "real_pdf": # Read real data
-        data_pdf_i0 = clean_airlinedata(os.path.expanduser(file_path[file_no_i]),
+    elif using_data == "real_pdf":  # Read real data
+        data_pdf_i0 = clean_airlinedata(os.path.expanduser(
+            file_path[file_no_i]),
                                         fit_intercept=fit_intercept)
 
         # Create an full-column empty DataFrame and resize current subset
-        edf = pd.DataFrame(columns=list(set(dummy_column_names) - set(data_pdf_i0.columns)))
+        edf = pd.DataFrame(
+            columns=list(set(dummy_column_names) - set(data_pdf_i0.columns)))
         data_pdf_i = data_pdf_i0.append(edf, sort=True)
         del data_pdf_i0
 
-        data_pdf_i.fillna(0, inplace = True) # Replace append-generated NaN with 0
+        data_pdf_i.fillna(0,
+                          inplace=True)  # Replace append-generated NaN with 0
 
-
-        partition_num_sub.append(ceil(data_pdf_i.shape[0] / sample_size_per_partition))
-        data_pdf_i = insert_partition_id_pdf(data_pdf_i, partition_num_sub[file_no_i],
+        partition_num_sub.append(
+            ceil(data_pdf_i.shape[0] / sample_size_per_partition))
+        data_pdf_i = insert_partition_id_pdf(data_pdf_i,
+                                             partition_num_sub[file_no_i],
                                              partition_method)
 
         sample_size_sub.append(data_pdf_i.shape[0])
         memsize_sub.append(sys.getsizeof(data_pdf_i))
 
-
     ## Using HDFS data
     ## ------------------------------
-    elif  using_data == "real_hdfs":
-        isub = 0 # fixed, never changed
+    elif using_data == "real_hdfs":
+        isub = 0  # fixed, never changed
 
         # Read HDFS to Spark DataFrame
-        data_sdf_i = spark.read.csv(file_path[file_no_i], header=True, schema=schema_sdf)
+        data_sdf_i = spark.read.csv(file_path[file_no_i],
+                                    header=True,
+                                    schema=schema_sdf)
         data_sdf_i = data_sdf_i.select(usecols_x + [Y_name])
         data_sdf_i = data_sdf_i.dropna()
 
         # Define or transform response variable. Or use
         # https://spark.apache.org/docs/latest/ml-features.html#binarizer
-        data_sdf_i = data_sdf_i.withColumn(Y_name,functions.when(data_sdf_i[Y_name] > 0, 1).otherwise(0))
+        data_sdf_i = data_sdf_i.withColumn(
+            Y_name,
+            functions.when(data_sdf_i[Y_name] > 0, 1).otherwise(0))
 
         # Replace dropped factors with `00_OTHERS`. The trick of `00_` prefix will allow
         # user to drop it as the first level when intercept is used.
         for i in dummy_info['factor_dropped'].keys():
             if len(dummy_info['factor_dropped'][i]) > 0:
-                data_sdf_i = data_sdf_i.replace(dummy_info['factor_dropped'][i], '00_OTHERS', i)
+                data_sdf_i = data_sdf_i.replace(
+                    dummy_info['factor_dropped'][i], '00_OTHERS', i)
 
         sample_size_sub.append(data_sdf_i.count())
-        partition_num_sub.append(ceil(sample_size_sub[file_no_i] / sample_size_per_partition))
+        partition_num_sub.append(
+            ceil(sample_size_sub[file_no_i] / sample_size_per_partition))
 
         ## Add partition ID
         data_sdf_i = data_sdf_i.withColumn(
@@ -225,18 +245,21 @@ for file_no_i in range(n_files):
 ##----------------------------------------------------------------------------------------
 ## MODEL FITTING ON PARTITIONED DATA
 ##----------------------------------------------------------------------------------------
-    # Split the process into small subs if reading a real big DataFrame which my cause
-    # MemoryError
-    if  using_data in ["real_pdf", "simulated_pdf"]:
+# Split the process into small subs if reading a real big DataFrame which my cause
+# MemoryError
+    if using_data in ["real_pdf", "simulated_pdf"]:
         nsub = ceil(sample_size_sub[file_no_i] / max_sample_size_per_sdf)
 
         for isub in range(nsub):
 
             # Convert Pandas DataFrame to Spark DataFrame
-            idx_curr_sub = [round(sample_size_sub[file_no_i] / nsub * isub),
-                            round(sample_size_sub[file_no_i] / nsub * (isub + 1))]
+            idx_curr_sub = [
+                round(sample_size_sub[file_no_i] / nsub * isub),
+                round(sample_size_sub[file_no_i] / nsub * (isub + 1))
+            ]
 
-            data_sdf_isub = spark.createDataFrame(data_pdf_i.iloc[idx_curr_sub[0]:idx_curr_sub[1], ])
+            data_sdf_isub = spark.createDataFrame(
+                data_pdf_i.iloc[idx_curr_sub[0]:idx_curr_sub[1], ])
 
             # Union all sequential feeded pdf to sdf.
             if isub == 0:
@@ -247,28 +270,31 @@ for file_no_i in range(n_files):
 
             loop_counter += 1
             time_elapsed = time.perf_counter() - tic_2sdf
-            time_to_go = timedelta(seconds=time_elapsed / loop_counter * (n_files * nsub - loop_counter))
+            time_to_go = timedelta(seconds=time_elapsed / loop_counter *
+                                   (n_files * nsub - loop_counter))
             print('Creating Spark DataFrame:\t' + str(isub) + '/' + str(nsub))
-            print('Time elapsed:\t' + str(timedelta(seconds=time.perf_counter() - tic_2sdf))
-                  + '.\tTime to go:\t' + str(time_to_go))
-
+            print('Time elapsed:\t' +
+                  str(timedelta(seconds=time.perf_counter() - tic_2sdf)) +
+                  '.\tTime to go:\t' + str(time_to_go))
 
     time_2sdf_sub.append(time.perf_counter() - tic_2sdf)
 
-
-##----------------------------------------------------------------------------------------
-## MODELING ON PARTITIONED DATA
-##----------------------------------------------------------------------------------------
+    ##----------------------------------------------------------------------------------------
+    ## MODELING ON PARTITIONED DATA
+    ##----------------------------------------------------------------------------------------
     # Descriptive statistics
     if len(data_info_path) > 0:
         if data_info_path["save"] == True:
-            data_info = data_sdf_i.describe().toPandas() # descriptive statistics
-            data_info.to_csv(os.path.expanduser(data_info_path["path"]), index=False)
-            print("Descriptive statistics for data are saved to:\t" + data_info_path["path"])
+            data_info = data_sdf_i.describe().toPandas(
+            )  # descriptive statistics
+            data_info.to_csv(os.path.expanduser(data_info_path["path"]),
+                             index=False)
+            print("Descriptive statistics for data are saved to:\t" +
+                  data_info_path["path"])
         else:
             data_info = pd.read_csv(os.path.expanduser(data_info_path["path"]))
-            print("Descriptive statistics for data are loaded from file:\t" + data_info_path["path"])
-
+            print("Descriptive statistics for data are loaded from file:\t" +
+                  data_info_path["path"])
 
     # Standardized the data. This requires 'requirement failed: Column Year must be of
     # type org.apache.spark.ml.linalg.VectorUD. We do it with Map model.
@@ -280,15 +306,16 @@ for file_no_i in range(n_files):
     # scaledData = scalerModel.transform(data_sdf_i)
 
     tic_repartition = time.perf_counter()
-    data_sdf_i = data_sdf_i.repartition(partition_num_sub[file_no_i], "partition_id")
+    data_sdf_i = data_sdf_i.repartition(partition_num_sub[file_no_i],
+                                        "partition_id")
     time_repartition_sub.append(time.perf_counter() - tic_repartition)
 
     ## Register a user defined function via the Pandas UDF
-    schema_beta = StructType(
-        [StructField('par_id', IntegerType(), True),
-         StructField('coef', DoubleType(), True),
-         StructField('Sig_invMcoef', DoubleType(), True)]
-        + convert_schema(usecols_x, dummy_info, fit_intercept))
+    schema_beta = StructType([
+        StructField('par_id', IntegerType(), True),
+        StructField('coef', DoubleType(), True),
+        StructField('Sig_invMcoef', DoubleType(), True)
+    ] + convert_schema(usecols_x, dummy_info, fit_intercept))
 
     @pandas_udf(schema_beta, PandasUDFType.GROUPED_MAP)
     def logistic_model_udf(sample_df):
@@ -300,7 +327,8 @@ for file_no_i in range(n_files):
 
     # pdb.set_trace()
     # partition the data and run the UDF
-    model_mapped_sdf_i = data_sdf_i.groupby("partition_id").apply(logistic_model_udf)
+    model_mapped_sdf_i = data_sdf_i.groupby("partition_id").apply(
+        logistic_model_udf)
 
     # Union all sequential mapped results.
     if file_no_i == 0 & isub == 0:
@@ -339,13 +367,12 @@ out_par = out_dlsa
 out_par["beta_byOLS"] = Sig_inv_beta["beta_byOLS"]
 out_par["beta_byONESHOT"] = Sig_inv_beta["beta_byONESHOT"]
 
-out_model_eval = logistic_model_eval_sdf(
-    data_sdf=data_sdf_i,
-    par=out_par,
-    fit_intercept=fit_intercept,
-    Y_name=Y_name,
-    dummy_info=dummy_info,
-    data_info=data_info)
+out_model_eval = logistic_model_eval_sdf(data_sdf=data_sdf_i,
+                                         par=out_par,
+                                         fit_intercept=fit_intercept,
+                                         Y_name=Y_name,
+                                         dummy_info=dummy_info,
+                                         data_info=data_info)
 
 time_model_eval = time.perf_counter() - tic_model_eval
 ##----------------------------------------------------------------------------------------
@@ -357,17 +384,20 @@ time_repartition = sum(time_repartition_sub)
 # time_2sdf = sum(time_2sdf_sub)
 # sample_size_per_partition = sample_size / partition_num
 
-out_time = pd.DataFrame({
-    "sample_size": sample_size,
-    "sample_size_per_partition": sample_size_per_partition,
-    "n_par": len(schema_beta) - 3,
-    "partition_num": partition_num,
-    "memsize_total": memsize_total,
-    # "time_2sdf": time_2sdf,
-    "time_repartition": time_repartition,
-    "time_mapred": time_mapred,
-    "time_dlsa": time_dlsa,
-    "time_model_eval": time_model_eval}, index=[0])
+out_time = pd.DataFrame(
+    {
+        "sample_size": sample_size,
+        "sample_size_per_partition": sample_size_per_partition,
+        "n_par": len(schema_beta) - 3,
+        "partition_num": partition_num,
+        "memsize_total": memsize_total,
+        # "time_2sdf": time_2sdf,
+        "time_repartition": time_repartition,
+        "time_mapred": time_mapred,
+        "time_dlsa": time_dlsa,
+        "time_model_eval": time_model_eval
+    },
+    index=[0])
 
 # save the model to pickle, use pd.read_pickle("test.pkl") to load it.
 # out_dlas.to_pickle("test.pkl")
