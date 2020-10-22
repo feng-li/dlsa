@@ -20,44 +20,50 @@ def dlsa_mapred(model_mapped_sdf):
 
     '''
     # mapped_pdf = model_mapped_sdf.toPandas()
-    ##----------------------------------------------------------------------------------------
-    ## MERGE
-    ##----------------------------------------------------------------------------------------
+    #----------------------------------------------------------------------------------------
+    # MERGE
+    #----------------------------------------------------------------------------------------
     groupped_sdf = model_mapped_sdf.groupby('par_id')
-    groupped_sdf_sum = groupped_sdf.sum(*model_mapped_sdf.columns[1:]) #TODO: Error with Python < 3.7 for > 255 arguments. Location 0 is 'par_id'
+    groupped_sdf_sum = groupped_sdf.sum(
+        *model_mapped_sdf.columns[1:]
+    )  # TODO: Error with Python < 3.7 for > 255 arguments. Location 0 is 'par_id'
     groupped_pdf_sum = groupped_sdf_sum.toPandas().sort_values("par_id")
 
-    if groupped_pdf_sum.shape[0] == 0: # bad chunked models
+    if groupped_pdf_sum.shape[0] == 0:  # bad chunked models
 
-        raise Exception("Zero-length grouped pandas DataFrame obtained, check the input.")
+        raise Exception(
+            "Zero-length grouped pandas DataFrame obtained, check the input.")
         # out = pd.DataFrame(columns= ["beta_byOLS", "beta_byONESHOT"] + model_mapped_sdf.columns[3:])
 
     else:
 
-        Sig_invMcoef_sum = groupped_pdf_sum.iloc[:,2]
-        Sig_inv_sum = groupped_pdf_sum.iloc[:,3:]
+        Sig_invMcoef_sum = groupped_pdf_sum.iloc[:, 2]
+        Sig_inv_sum = groupped_pdf_sum.iloc[:, 3:]
 
         # beta_byOLS = np.linalg.solve(Sig_inv_sum, Sig_invMcoef_sum)
-        beta_byOLS = np.linalg.lstsq(Sig_inv_sum,
-                                     Sig_invMcoef_sum,
-                                     rcond=None)[0] # least-squares solution
+        beta_byOLS = np.linalg.lstsq(Sig_inv_sum, Sig_invMcoef_sum,
+                                     rcond=None)[0]  # least-squares solution
 
-        beta_byONESHOT = groupped_pdf_sum['sum(coef)'] / model_mapped_sdf.rdd.getNumPartitions()
+        beta_byONESHOT = groupped_pdf_sum[
+            'sum(coef)'] / model_mapped_sdf.rdd.getNumPartitions()
         p = len(Sig_invMcoef_sum)
 
-        out = pd.DataFrame(np.concatenate((beta_byOLS.reshape(p, 1),
-                                           np.asarray(beta_byONESHOT).reshape(p, 1),
-                                           Sig_inv_sum), 1),
-                           columns= ["beta_byOLS", "beta_byONESHOT"] + model_mapped_sdf.columns[3:])
+        out = pd.DataFrame(np.concatenate(
+            (beta_byOLS.reshape(p, 1), np.asarray(beta_byONESHOT).reshape(
+                p, 1), Sig_inv_sum), 1),
+                           columns=["beta_byOLS", "beta_byONESHOT"] +
+                           model_mapped_sdf.columns[3:])
 
     return out
 
 
-robjects.r.source(os.path.dirname(os.path.abspath(__file__)) + "/R/dlsa_alasso_func.R", verbose=False)
-lars_lsa=robjects.r['lars.lsa']
+robjects.r.source(os.path.dirname(os.path.abspath(__file__)) +
+                  "/R/dlsa_alasso_func.R",
+                  verbose=False)
+lars_lsa = robjects.r['lars.lsa']
 
 # R version
-dlsa_r=robjects.r['dlsa']
+dlsa_r = robjects.r['dlsa']
 
 
 # Python version
@@ -68,8 +74,10 @@ def dlsa(Sig_inv_, beta_, sample_size, fit_intercept=False):
     '''
 
     numpy2ri.activate()
-    dfitted = lars_lsa(np.asarray(Sig_inv_), np.asarray(beta_),
-                       intercept=fit_intercept, n=sample_size)
+    dfitted = lars_lsa(np.asarray(Sig_inv_),
+                       np.asarray(beta_),
+                       intercept=fit_intercept,
+                       n=sample_size)
     numpy2ri.deactivate()
 
     AIC = robjects.FloatVector(dfitted.rx2("AIC"))
@@ -80,7 +88,8 @@ def dlsa(Sig_inv_, beta_, sample_size, fit_intercept=False):
 
     if fit_intercept:
         beta_byOLS = beta_.to_numpy()
-        beta0 = np.array(robjects.FloatVector(dfitted.rx2("beta0"))) + beta_byOLS[0]
+        beta0 = np.array(robjects.FloatVector(
+            dfitted.rx2("beta0"))) + beta_byOLS[0]
 
         beta_byAIC = np.hstack([beta0[AIC_minIdx], beta[AIC_minIdx, :]])
         beta_byBIC = np.hstack([beta0[BIC_minIdx], beta[BIC_minIdx, :]])

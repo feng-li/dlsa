@@ -3,6 +3,6 @@
 import sys
 
 count = 0
-for line in sys.stdin: # read input from stdin
+for line in sys.stdin:  # read input from stdin
     count += 1
-print(count) # print goes to sys.stdout
+print(count)  # print goes to sys.stdout
