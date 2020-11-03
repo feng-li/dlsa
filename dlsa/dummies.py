@@ -37,10 +37,11 @@ def cumsum_dicts(dict1, dict2):
     containing sub-dictionaries with elements and counts.
 
     '''
+    # If only one dict is supplied, do nothing.
     if len(dict1) == 0:
         dict_new = dict2
-    elif len(dict1) == 0:
-        dict_new = dict2
+    elif len(dict2) == 0:
+        dict_new = dict1
     else:
         dict_new = {}
         for i in dict1.keys():
@@ -57,7 +58,7 @@ def select_dummy_factors(dummy_dict, keep_top, replace_with, pickle_file):
 
     '''
     dummy_columns_name = list(dummy_dict)
-    nobs = sum(dummy_dict[dummy_columns_name[1]].values())
+    # nobs = sum(dummy_dict[dummy_columns_name[1]].values())
 
     factor_set = {}  # The full dummy sets
     factor_selected = {}  # Used dummy sets
@@ -79,6 +80,9 @@ def select_dummy_factors(dummy_dict, keep_top, replace_with, pickle_file):
 
         factor_selected[column_i] = list(
             np.array(factor_set[column_i])[factor_selected_index])
+
+        factor_dropped[column_i] = list(
+            np.array(factor_set[column_i])[factor_dropped_index])
 
         # Replace dropped dummies with indicators like `others`
         if len(factor_dropped_index[0]) == 0:
@@ -123,7 +127,7 @@ def select_dummy_factors_from_file(file, header, dummy_columns, keep_top,
                 buffer_list = [x[:-1].split(",") for x in buffer]
 
                 buffer_num += 1
-                if ((buffer_num == 1) & (header is True)):
+                if ((buffer_num == 1) and (header is True)):
                     buffer_header = buffer_list[0]
                     buffer_starts = 1
                 else:
