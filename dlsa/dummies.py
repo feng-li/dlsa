@@ -123,7 +123,7 @@ def select_dummy_factors_from_file(file, header, dummy_columns, keep_top,
             if len(buffer) == 0:
                 break
             else:
-                buffer_list = [x[:-1].split(",") for x in buffer]
+                buffer_list = [x.strip().split(",") for x in buffer]
 
                 buffer_num += 1
                 if ((buffer_num == 1) and (header is True)):
