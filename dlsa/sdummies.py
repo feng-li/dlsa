@@ -1,18 +1,17 @@
-import pyspark as ps
 from pyspark.sql import Column
 from pyspark.sql.functions import col, count as sparkcount, when, lit
 from pyspark.sql.types import StringType
 from pyspark.ml.feature import StringIndexer, IndexToString
 from pyspark.ml import Pipeline
 from pyspark.sql.functions import col
+import json
 
 
 def withMeta(self, alias, meta):
-    sc = ps.SparkContext._active_spark_context
+    sc = spark.sparkContext._active_spark_context
     jmeta = sc._gateway.jvm.org.apache.spark.sql.types.Metadata
     return Column(
         getattr(self._jc, "as")(alias, jmeta.fromJson(json.dumps(meta))))
-
 
 def get_sdummies(sdf, dummy_columns, keep_top=.01, replace_with='other'):
     """
@@ -21,6 +20,7 @@ def get_sdummies(sdf, dummy_columns, keep_top=.01, replace_with='other'):
     :param dummy_columns: String columns that need to be indexed
     :param replace_with: String to use as replacement for the observations that need to be grouped.
 
+    Modified based on
     https://stackoverflow.com/questions/48566982/how-to-efficiently-group-levels-with-low-frequency-counts-in-a-high-cardinality
     """
     total = sdf.count()
@@ -57,6 +57,10 @@ def get_sdummies(sdf, dummy_columns, keep_top=.01, replace_with='other'):
 if __name__ == "__main__":
 
     # SAMPLE DATA -----------------------------------------------------------------
+    import pyspark
+    conf = pyspark.SparkConf().setAppName("Spark DLSA App")
+    spark = pyspark.sql.SparkSession.builder.config(conf=conf).getOrCreate()
+
     import pandas as pd
     df = pd.DataFrame({
         'x1': ['a', 'b', 'a', 'b', 'c'],  # a: 0.4, b: 0.4, c: 0.2
@@ -64,7 +68,7 @@ if __name__ == "__main__":
         'x3': ['a', 'a', 'a', 'a', 'a'],  # a: 1.0, b: 0.0, c: 0.0
         'x4': ['a', 'b', 'c', 'd', 'e']
     })  # a: 0.2, b: 0.2, c: 0.2, d: 0.2, e: 0.2
-    sdf = sc.createDataFrame(df)
+    sdf = spark.createDataFrame(df)
 
     # TEST THE FUNCTION -----------------------------------------------------------
     sdf = get_sdummies(sdf, sdf.columns, 0.25)
