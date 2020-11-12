@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
-# import findspark
-# findspark.init("/usr/lib/spark-current")
+import findspark
+findspark.init("/usr/lib/spark-current")
 if __name__ == '__main__' and __package__ is None:
     from os import sys, path
     sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
@@ -101,7 +101,7 @@ elif using_data in ["real_pdf", "real_hdfs"]:
 
     # file_path = ['/running/data_raw/xa' + str(letter) + '.csv' for letter in string.ascii_lowercase[0:1]] # HDFS file
 
-    file_path = ['/running/data_raw/allfile.csv']  # HDFS file
+    file_path = ['/data/airdelay_small.csv']  # HDFS file
 
     usecols_x = [
         'Year',
@@ -185,8 +185,7 @@ for file_no_i in range(n_files):
             partition_num_sub.append(partition_num_sub[0])
 
     elif using_data == "real_pdf":  # Read real data
-        data_pdf_i0 = clean_airlinedata(os.path.expanduser(
-            file_path[file_no_i]),
+        data_pdf_i0 = clean_airlinedata(os.path.expanduser(file_path[file_no_i]),
                                         fit_intercept=fit_intercept)
 
         # Create an full-column empty DataFrame and resize current subset
@@ -195,8 +194,8 @@ for file_no_i in range(n_files):
         data_pdf_i = data_pdf_i0.append(edf, sort=True)
         del data_pdf_i0
 
-        data_pdf_i.fillna(0,
-                          inplace=True)  # Replace append-generated NaN with 0
+        # Replace append-generated NaN with 0
+        data_pdf_i.fillna(0, inplace=True)
 
         partition_num_sub.append(
             ceil(data_pdf_i.shape[0] / sample_size_per_partition))
@@ -224,6 +223,16 @@ for file_no_i in range(n_files):
         data_sdf_i = data_sdf_i.withColumn(
             Y_name,
             functions.when(data_sdf_i[Y_name] > 0, 1).otherwise(0))
+
+
+        from pyspark.sql.functions import col, countDistinct
+
+        dummy_columns = ['Year', 'Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest']
+        zz = data_sdf_i.agg(*(countDistinct(col(c)).alias(c) for c in dummy_columns))
+
+
+        from pyspark.ml.feature import OneHotEncoder,  StringIndexer
+
 
         # Replace dropped factors with `00_OTHERS`. The trick of `00_` prefix will allow
         # user to drop it as the first level when intercept is used.
