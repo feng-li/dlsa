@@ -4,7 +4,6 @@ from pyspark.sql.functions import col, count as sparkcount, when, lit
 from pyspark.sql.types import StringType
 from pyspark.ml.feature import StringIndexer, IndexToString
 from pyspark.ml import Pipeline
-
 from pyspark.sql.functions import col
 
 
@@ -15,7 +14,7 @@ def withMeta(self, alias, meta):
         getattr(self._jc, "as")(alias, jmeta.fromJson(json.dumps(meta))))
 
 
-def group_low_freq(sdf, dummy_columns, keep_top=.01, replace_with='other'):
+def get_sdummies(sdf, dummy_columns, keep_top=.01, replace_with='other'):
     """
     Index string columns and group all observations that occur in less then a keep_top% of the rows in sdf per column.
     :param sdf: A pyspark.sql.dataframe.DataFrame
@@ -68,7 +67,7 @@ if __name__ == "__main__":
     sdf = sc.createDataFrame(df)
 
     # TEST THE FUNCTION -----------------------------------------------------------
-    sdf = group_low_freq(sdf, sdf.columns, 0.25)
+    sdf = get_sdummies(sdf, sdf.columns, 0.25)
 
     ix_cols = [x for x in sdf.columns if 'ix_' in x]
     for string_col in ix_cols:
