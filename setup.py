@@ -5,6 +5,8 @@ def read(file):
     return open(os.path.join(os.path.dirname(__file__), file)).read()
 
 setup(name='dlsa',
+      use_scm_version=True,
+      setup_requires=['setuptools_scm'],
       version='0.01',
       description='Distributed Least Squares Approximations',
       keywords='spark, spark-ml, pyspark, mapreduce',
