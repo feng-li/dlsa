@@ -1,4 +1,4 @@
-# `dlsa:` Distributed Least Squares Approximation 
+# `dlsa` Distributed Least Squares Approximation 
 _implemented with Apache Spark_
 
 ## Introduction
@@ -11,7 +11,7 @@ In this work, we develop a distributed least squares approximation (DLSA) method
 ## System Requirements
 
 - `Spark >= 2.3.1`
-- `Python >= 3.7.0`
+- `Python >= 3.7.0` Note that `Spark < 3.0` is only compatible with `Python <3.8`
   - `pyarrow >= 0.15.0` Please read this [Compatibility issue with Spark 2.3.x or 2.4.x](https://spark.apache.org/docs/latest/sql-pyspark-pandas-with-arrow.html#compatibility-setting-for-pyarrow--0150-and-spark-23x-24x)
   - `scikit-learn >= 0.21.2`
   - `rpy2 >= 3.0.4` (optional)
@@ -24,7 +24,6 @@ In this work, we develop a distributed least squares approximation (DLSA) method
 ## Make a Python module
 
 - You firstly need to pack the core code into Python module
-
 ```sh
 make zip
 ```
@@ -32,18 +31,18 @@ A `dlsa.zip` file will then be created within the folder `projects/`.
 
 - Then you should be able to upload it to the Spark cluster inside your Python script.
 
-```
+```py
 spark.sparkContext.addPyFile("dlsa.zip")
 ```
 
 ## Run the [PySpark](https://spark.apache.org/docs/latest/api/python/index.html) code on the Spark platform
 ```sh
-  projects/bash/spark_dlsa_run.sh
+projects/bash/spark_dlsa_run.sh
  ```
  or simply run
 
  ```py
-   .projects/logistic_dlsa.py
+ projects/logistic_dlsa.py
  ```
 
 ## References
