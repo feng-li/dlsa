@@ -7,16 +7,21 @@ if __name__ == '__main__' and __package__ is None:
     sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
 import pyspark
+# PyArrow compatibility https://spark.apache.org/docs/latest/sql-pyspark-pandas-with-arrow.html#compatibility-setting-for-pyarrow--0150-and-spark-23x-24x
 conf = pyspark.SparkConf().setAppName("Spark DLSA App").setExecutorEnv(
-    'ARROW_PRE_0_15_IPC_FORMAT', '1'
-)  # PyArrow compatibility https://spark.apache.org/docs/latest/sql-pyspark-pandas-with-arrow.html#compatibility-setting-for-pyarrow--0150-and-spark-23x-24x
+    'ARROW_PRE_0_15_IPC_FORMAT', '1')
 spark = pyspark.sql.SparkSession.builder.config(conf=conf).getOrCreate()
+
+# Enable Arrow-based columnar data transfers
+spark.conf.set("spark.sql.execution.arrow.enabled", "true")
+spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "true")
+
 spark.sparkContext.addPyFile("dlsa.zip")
 
+# System functions
 import os, sys, time
 from datetime import timedelta
 
-# from hurry.filesize import size
 from math import ceil
 import pickle
 import numpy as np
@@ -24,13 +29,13 @@ import pandas as pd
 import string
 from math import ceil
 
+# Spark functions
 from pyspark.sql.types import *
 from pyspark.sql import functions as F
 from pyspark.sql.functions import pandas_udf, PandasUDFType, monotonically_increasing_id
 
+# dlsa functions
 from dlsa import dlsa, dlsa_mapred, dlsa_r
-
-# os.chdir("dlsa") # TEMP code
 from dlsa.models import simulate_logistic, logistic_model
 from dlsa.model_eval import logistic_model_eval_sdf
 from dlsa.sdummies import get_sdummies
@@ -40,10 +45,6 @@ from dlsa.utils_spark import convert_schema
 from sklearn.linear_model import LogisticRegression
 
 from rpy2.robjects import numpy2ri
-
-# Enable Arrow-based columnar data transfers
-spark.conf.set("spark.sql.execution.arrow.enabled", "true")
-spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "true")
 
 # FIXME: PATH BUG
 # spark.sparkContext.addPyFile("/home/lifeng/code/dlsa/models.py")
@@ -79,6 +80,7 @@ data_info_path = {'save': False, 'path': "~/running/data_raw/data_info.csv"}
 # Model settings
 #-----------------------------------------------------------------------------------------
 fit_intercept = True
+fit_algorithms = ['dlsa', 'spark_logisticregression']
 
 # Settings for using simulated data
 #-----------------------------------------------------------------------------------------
@@ -159,6 +161,7 @@ elif using_data in ["real_pdf", "real_hdfs"]:
     dummy_columns = [
         'Year', 'Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'
     ]
+    dummy_keep_top = [1, 1, 1, 0.8, 0.8, 0.8]
 
     n_files = len(file_path)
     partition_num_sub = []
@@ -230,12 +233,6 @@ for file_no_i in range(n_files):
             Y_name,
             F.when(data_sdf_i[Y_name] > 0, 1).otherwise(0))
 
-
-        # Replace dropped factors with `00_OTHERS`. The trick of `00_` prefix will allow
-        # user to drop it as the first level when intercept is used.
-        get_sdummies
-
-
         sample_size_sub.append(data_sdf_i.count())
         partition_num_sub.append(
             ceil(sample_size_sub[file_no_i] / sample_size_per_partition))
@@ -289,7 +286,7 @@ for file_no_i in range(n_files):
     ##----------------------------------------------------------------------------------------
     ## MODELING ON PARTITIONED DATA
     ##----------------------------------------------------------------------------------------
-    # Descriptive statistics
+    # Load or Create descriptive statistics used for standardizing data.
     if len(data_info_path) > 0:
         if data_info_path["save"] == True:
             data_info = data_sdf_i.describe().toPandas(
@@ -303,46 +300,39 @@ for file_no_i in range(n_files):
             print("Descriptive statistics for data are loaded from file:\t" +
                   data_info_path["path"])
 
-    # Standardized the data. This requires 'requirement failed: Column Year must be of
-    # type org.apache.spark.ml.linalg.VectorUD. We do it with Map model.
+    # Independent fit chunked data with UDF.
+    if 'dlsa' in fit_algorithms:
+        tic_repartition = time.perf_counter()
+        data_sdf_i = data_sdf_i.repartition(partition_num_sub[file_no_i],
+                                            "partition_id")
+        time_repartition_sub.append(time.perf_counter() - tic_repartition)
 
-    # from pyspark.ml.feature import StandardScaler
-    # scaler = StandardScaler(inputCol="Distance", outputCol="scaledDistance",
-    #                         withStd=True, withMean=True)
-    # scalerModel = scaler.fit(data_sdf_i)
-    # scaledData = scalerModel.transform(data_sdf_i)
+        ## Register a user defined function via the Pandas UDF
+        schema_beta = StructType([
+            StructField('par_id', IntegerType(), True),
+            StructField('coef', DoubleType(), True),
+            StructField('Sig_invMcoef', DoubleType(), True)
+        ] + convert_schema(usecols_x, dummy_info, fit_intercept))
 
-    tic_repartition = time.perf_counter()
-    data_sdf_i = data_sdf_i.repartition(partition_num_sub[file_no_i],
-                                        "partition_id")
-    time_repartition_sub.append(time.perf_counter() - tic_repartition)
+        @pandas_udf(schema_beta, PandasUDFType.GROUPED_MAP)
+        def logistic_model_udf(sample_df):
+            return logistic_model(sample_df=sample_df,
+                                  Y_name=Y_name,
+                                  fit_intercept=fit_intercept,
+                                  dummy_info=dummy_info,
+                                  data_info=data_info)
 
-    ## Register a user defined function via the Pandas UDF
-    schema_beta = StructType([
-        StructField('par_id', IntegerType(), True),
-        StructField('coef', DoubleType(), True),
-        StructField('Sig_invMcoef', DoubleType(), True)
-    ] + convert_schema(usecols_x, dummy_info, fit_intercept))
+        # pdb.set_trace()
+        # partition the data and run the UDF
+        model_mapped_sdf_i = data_sdf_i.groupby("partition_id").apply(
+            logistic_model_udf)
 
-    @pandas_udf(schema_beta, PandasUDFType.GROUPED_MAP)
-    def logistic_model_udf(sample_df):
-        return logistic_model(sample_df=sample_df,
-                              Y_name=Y_name,
-                              fit_intercept=fit_intercept,
-                              dummy_info=dummy_info,
-                              data_info=data_info)
-
-    # pdb.set_trace()
-    # partition the data and run the UDF
-    model_mapped_sdf_i = data_sdf_i.groupby("partition_id").apply(
-        logistic_model_udf)
-
-    # Union all sequential mapped results.
-    if file_no_i == 0 & isub == 0:
-        model_mapped_sdf = model_mapped_sdf_i
-        # memsize_sub = sys.getsizeof(data_pdf_i)
-    else:
-        model_mapped_sdf = model_mapped_sdf.unionAll(model_mapped_sdf_i)
+        # Union all sequential mapped results.
+        if file_no_i == 0 and isub == 0:
+            model_mapped_sdf = model_mapped_sdf_i
+            # memsize_sub = sys.getsizeof(data_pdf_i)
+        else:
+            model_mapped_sdf = model_mapped_sdf.unionAll(model_mapped_sdf_i)
 
 ##----------------------------------------------------------------------------------------
 ## AGGREGATING THE MODEL ESTIMATES
@@ -350,86 +340,130 @@ for file_no_i in range(n_files):
 if using_data == "simulated_pdf":
     p = data_pdf_i.shape[1]
 
-# sample_size=model_mapped_sdf.count()
-sample_size = sum(sample_size_sub)
+if 'dlsa' in fit_algorithms:
+    # sample_size=model_mapped_sdf.count()
+    sample_size = sum(sample_size_sub)
 
-# Obtain Sig_inv and beta
-tic_mapred = time.perf_counter()
-Sig_inv_beta = dlsa_mapred(model_mapped_sdf)
-time_mapred = time.perf_counter() - tic_mapred
+    # Obtain Sig_inv and beta
+    tic_mapred = time.perf_counter()
+    Sig_inv_beta = dlsa_mapred(model_mapped_sdf)
+    time_mapred = time.perf_counter() - tic_mapred
 
-tic_dlsa = time.perf_counter()
-out_dlsa = dlsa(Sig_inv_=Sig_inv_beta.iloc[:, 2:],
-                beta_=Sig_inv_beta["beta_byOLS"],
-                sample_size=sample_size,
-                fit_intercept=fit_intercept)
+    tic_dlsa = time.perf_counter()
+    out_dlsa = dlsa(Sig_inv_=Sig_inv_beta.iloc[:, 2:],
+                    beta_=Sig_inv_beta["beta_byOLS"],
+                    sample_size=sample_size,
+                    fit_intercept=fit_intercept)
 
-time_dlsa = time.perf_counter() - tic_dlsa
-##----------------------------------------------------------------------------------------
-## Model Evaluation
-##----------------------------------------------------------------------------------------
-tic_model_eval = time.perf_counter()
+    time_dlsa = time.perf_counter() - tic_dlsa
+    ##----------------------------------------------------------------------------------------
+    ## Model Evaluation
+    ##----------------------------------------------------------------------------------------
+    tic_model_eval = time.perf_counter()
 
-out_par = out_dlsa
-out_par["beta_byOLS"] = Sig_inv_beta["beta_byOLS"]
-out_par["beta_byONESHOT"] = Sig_inv_beta["beta_byONESHOT"]
+    out_par = out_dlsa
+    out_par["beta_byOLS"] = Sig_inv_beta["beta_byOLS"]
+    out_par["beta_byONESHOT"] = Sig_inv_beta["beta_byONESHOT"]
 
-out_model_eval = logistic_model_eval_sdf(data_sdf=data_sdf_i,
-                                         par=out_par,
-                                         fit_intercept=fit_intercept,
-                                         Y_name=Y_name,
-                                         dummy_info=dummy_info,
-                                         data_info=data_info)
+    out_model_eval = logistic_model_eval_sdf(data_sdf=data_sdf_i,
+                                             par=out_par,
+                                             fit_intercept=fit_intercept,
+                                             Y_name=Y_name,
+                                             dummy_info=dummy_info,
+                                             data_info=data_info)
 
-time_model_eval = time.perf_counter() - tic_model_eval
-##----------------------------------------------------------------------------------------
-## PRINT OUTPUT
-##----------------------------------------------------------------------------------------
-memsize_total = sum(memsize_sub)
-partition_num = sum(partition_num_sub)
-time_repartition = sum(time_repartition_sub)
-# time_2sdf = sum(time_2sdf_sub)
-# sample_size_per_partition = sample_size / partition_num
+    time_model_eval = time.perf_counter() - tic_model_eval
+    ##----------------------------------------------------------------------------------------
+    ## PRINT OUTPUT
+    ##----------------------------------------------------------------------------------------
+    memsize_total = sum(memsize_sub)
+    partition_num = sum(partition_num_sub)
+    time_repartition = sum(time_repartition_sub)
+    # time_2sdf = sum(time_2sdf_sub)
+    # sample_size_per_partition = sample_size / partition_num
 
-out_time = pd.DataFrame(
-    {
-        "sample_size": sample_size,
-        "sample_size_per_partition": sample_size_per_partition,
-        "n_par": len(schema_beta) - 3,
-        "partition_num": partition_num,
-        "memsize_total": memsize_total,
-        # "time_2sdf": time_2sdf,
-        "time_repartition": time_repartition,
-        "time_mapred": time_mapred,
-        "time_dlsa": time_dlsa,
-        "time_model_eval": time_model_eval
-    },
-    index=[0])
+    out_time = pd.DataFrame(
+        {
+            "sample_size": sample_size,
+            "sample_size_per_partition": sample_size_per_partition,
+            "n_par": len(schema_beta) - 3,
+            "partition_num": partition_num,
+            "memsize_total": memsize_total,
+            # "time_2sdf": time_2sdf,
+            "time_repartition": time_repartition,
+            "time_mapred": time_mapred,
+            "time_dlsa": time_dlsa,
+            "time_model_eval": time_model_eval
+        },
+        index=[0])
 
-# save the model to pickle, use pd.read_pickle("test.pkl") to load it.
-# out_dlas.to_pickle("test.pkl")
-out = [Sig_inv_beta, out_dlsa, out_par, out_model_eval, out_time]
-pickle.dump(out, open(os.path.expanduser(model_saved_file_name), 'wb'))
-print("Model results are saved to:\t" + model_saved_file_name)
+    # save the model to pickle, use pd.read_pickle("test.pkl") to load it.
+    # out_dlas.to_pickle("test.pkl")
+    out = [Sig_inv_beta, out_dlsa, out_par, out_model_eval, out_time]
+    pickle.dump(out, open(os.path.expanduser(model_saved_file_name), 'wb'))
+    print("Model results are saved to:\t" + model_saved_file_name)
 
-# print(", ".join(format(x, "10.2f") for x in out_time))
-print("\nModel Summary:\n")
-print(out_time.to_string(index=False))
+    # print(", ".join(format(x, "10.2f") for x in out_time))
+    print("\nModel Summary:\n")
+    print(out_time.to_string(index=False))
 
-print("\nModel Evaluation:")
-print("\tlog likelihood:\n")
-print(out_model_eval.to_string(index=False))
+    print("\nModel Evaluation:")
+    print("\tlog likelihood:\n")
+    print(out_model_eval.to_string(index=False))
 
-print("\nDLSA Coefficients:\n")
-print(out_par.to_string())
+    print("\nDLSA Coefficients:\n")
+    print(out_par.to_string())
 
-# Verify with Pure R implementation.
-# numpy2ri.activate()
-# out_dlsa_r = dlsa_r(Sig_inv_=np.asarray(Sig_inv_beta.iloc[:, 2:]),
-#                     beta_=np.asarray(Sig_inv_beta["beta_byOLS"]),
-#                     sample_size=data_sdf.count(), intercept=False)
-# numpy2ri.deactivate()
+    # Verify with Pure R implementation.
+    # numpy2ri.activate()
+    # out_dlsa_r = dlsa_r(Sig_inv_=np.asarray(Sig_inv_beta.iloc[:, 2:]),
+    #                     beta_=np.asarray(Sig_inv_beta["beta_byOLS"]),
+    #                     sample_size=data_sdf.count(), intercept=False)
+    # numpy2ri.deactivate()
 
-# out_dlsa = dlsa(Sig_inv_=Sig_inv,
-#                 beta_=beta_byOLS,
-#                 sample_size=data_sdf.count(), intercept=False)
+    # out_dlsa = dlsa(Sig_inv_=Sig_inv,
+    #                 beta_=beta_byOLS,
+    #                 sample_size=data_sdf.count(), intercept=False)
+elif 'spark_logisticregression' in fit_algorithms:
+    model_mapped_sdf, dummy_info = get_sdummies(sdf=model_mapped_sdf,
+                                                keep_top=dummy_keep_top,
+                                                replace_with="zzz_OTHERS",
+                                                dummy_info=dummy_info)
+
+    # Make features
+    from pyspark.ml.classification import LogisticRegression
+    from pyspark.ml.linalg import Vectors
+    from pyspark.ml.feature import VectorAssembler, StandardScaler
+
+    # Feature columns
+    features_x_name = list(set(usecols_x) - set(Y_name) - set(dummy_columns))
+    dummy_columns_ONEHOT = ["ONEHOT_" + x for x in  dummy_columns]
+    features_name = features_x_name + dummy_columns_ONEHOT
+
+    assembler_x = VectorAssembler(inputCols=features_x_name, outputCol="features_x_raw")
+    model_mapped_sdf = assembler_x.transform(model_mapped_sdf)
+
+    # Standardized the non-categorical data.
+    scaler = StandardScaler(inputCol="features_x_raw", outputCol="features_x_std",
+                            withStd=True, withMean=True)
+    scalerModel = scaler.fit(model_mapped_sdf)
+    model_mapped_sdf = scalerModel.transform(model_mapped_sdf)
+
+    assembler_all = VectorAssembler(inputCols=["features_x_std"] + dummy_columns_ONEHOT, outputCol="features")
+    model_mapped_sdf = assembler_all.transform(model_mapped_sdf)
+
+    lr = LogisticRegression(labelCol=Y_name, featuresCol="features") #, maxIter=100, regParam=0.3, elasticNetParam=0.8)
+
+    # Fit the model
+    lrModel = lr.fit(model_mapped_sdf)
+
+    # Model fitted
+    print(lrModel.intercept)
+    print(lrModel.coefficients)
+
+    modelcoefficients=np.array(lrModel.coefficients)
+
+    out = [
+        sample_size, p, memsize, time_parallelize, time_clusterrun, time_wallclock
+    ]
+    print(", ".join(format(x, "10.4f") for x in out))
