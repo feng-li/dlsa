@@ -2,11 +2,14 @@
 # code directly, provided that R package `lars` and python package `rpy2` are both
 # installed. FIXME: write a native `lars_las()` function.
 import os
+import zipfile, pathlib
+
 import numpy as np
 import pandas as pd
 
 import rpy2.robjects as robjects
 from rpy2.robjects import numpy2ri
+import rpy2
 
 from pyspark.sql.types import *
 from pyspark.sql.functions import pandas_udf, PandasUDFType
@@ -57,14 +60,10 @@ def dlsa_mapred(model_mapped_sdf):
     return out
 
 
-robjects.r.source(os.path.dirname(os.path.abspath(__file__)) +
-                  "/R/dlsa_alasso_func.R",
-                  verbose=False)
+dlsa_rcode = zipfile.ZipFile(pathlib.Path(__file__).parents[1]).open("dlsa/R/dlsa_alasso_func.R").read().decode("utf-8")
+robjects.r.source(exprs=rpy2.rinterface.parse(dlsa_rcode), verbose=False)
 lars_lsa = robjects.r['lars.lsa']
-
-# R version
-dlsa_r = robjects.r['dlsa']
-
+# dlsa_r = robjects.r['dlsa']
 
 # Python version
 def dlsa(Sig_inv_, beta_, sample_size, fit_intercept=False):

@@ -2,7 +2,7 @@
 
 import findspark
 findspark.init("/usr/lib/spark-current")
-if __name__ == '__main__' and __package__ is None:
+if __name__ == '__main__': # and __package__ is None:
     from os import sys, path
     sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
@@ -16,7 +16,7 @@ spark = pyspark.sql.SparkSession.builder.config(conf=conf).getOrCreate()
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
 spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "true")
 
-# spark.sparkContext.addPyFile("dlsa.zip")
+spark.sparkContext.addPyFile("dlsa.zip")
 
 # System functions
 import os, sys, time
@@ -35,7 +35,7 @@ from pyspark.sql import functions as F
 from pyspark.sql.functions import pandas_udf, PandasUDFType, monotonically_increasing_id
 
 # dlsa functions
-from dlsa import dlsa, dlsa_mapred#, dlsa_r
+from dlsa.dlsa import dlsa, dlsa_mapred#, dlsa_r
 from dlsa.models import simulate_logistic, logistic_model
 from dlsa.model_eval import logistic_model_eval_sdf
 from dlsa.sdummies import get_sdummies
@@ -154,7 +154,7 @@ elif using_data in ["real_pdf", "real_hdfs"]:
     ])
     # s = spark.read.schema("col0 INT, col1 DOUBLE")
 
-    dummy_info_path = "~/running/data_raw/dummy_info.pkl"
+    dummy_info_path = "~/running/data/airdelay/dummy_info.pkl"
     dummy_info = pickle.load(open(os.path.expanduser(dummy_info_path), "rb"))
     # convert_dummies = list(dummy_info['factor_selected'].keys())
     # dummy_columns = list(dummy_info['factor_selected'].keys())
