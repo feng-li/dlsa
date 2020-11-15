@@ -230,10 +230,6 @@ for file_no_i in range(n_files):
         dummy_columns = ['Year', 'Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest']
         zz = data_sdf_i.agg(*(countDistinct(col(c)).alias(c) for c in dummy_columns))
 
-
-        from pyspark.ml.feature import OneHotEncoder,  StringIndexer
-
-
         # Replace dropped factors with `00_OTHERS`. The trick of `00_` prefix will allow
         # user to drop it as the first level when intercept is used.
         for i in dummy_info['factor_dropped'].keys():
