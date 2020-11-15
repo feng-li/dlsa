@@ -3,6 +3,7 @@ from pyspark.sql import functions as F
 from pyspark.ml.feature import StringIndexer, OneHotEncoder
 from pyspark.ml import Pipeline
 from pyspark.sql.window import Window
+import sys
 
 
 def get_sdummies(sdf, dummy_columns, keep_top, replace_with='zzz_other', dummy_info=[]):
@@ -13,6 +14,7 @@ def get_sdummies(sdf, dummy_columns, keep_top, replace_with='zzz_other', dummy_i
     :param keep_top: List [1, 0.8, 0.8]
     :param replace_with: String to use as replacement for the observations that need to be grouped.
 
+    return sdf, dummy_info
     """
     total = sdf.count()
     column_i = 0
@@ -35,8 +37,8 @@ def get_sdummies(sdf, dummy_columns, keep_top, replace_with='zzz_other', dummy_i
 
             # Obtain top dummy factors
             sdf_column_top_dummies = sdf_column_count.withColumn(
-                "cumperc", sdf_column_count['cumsum'] /
-                total).filter(col('cumperc') <= keep_top[column_i])
+                "cumperc", sdf_column_count['cumsum'] / total).filter(
+                    col('cumperc') <= keep_top[column_i])
             keep_list = sdf_column_top_dummies.select(string_col).rdd.flatMap(
                 lambda x: x).collect()
 
@@ -49,7 +51,6 @@ def get_sdummies(sdf, dummy_columns, keep_top, replace_with='zzz_other', dummy_i
 
         else:
             keep_list = factor_set["factor_selected"][string_col]
-
 
         # Replace dropped dummy factors with grouped factors.
         sdf = sdf.withColumn(
@@ -70,8 +71,8 @@ def get_sdummies(sdf, dummy_columns, keep_top, replace_with='zzz_other', dummy_i
 
         column_i += 1
 
-    ## Drop intermediate columns
-    drop_columns = ["IDX_" +x for x in dummy_columns] # +  dummy_columns
+    # Drop intermediate columns
+    drop_columns = ["IDX_" + x for x in dummy_columns]  # +  dummy_columns
     sdf = sdf.drop(*drop_columns)
 
     if len(dummy_info) == 0:

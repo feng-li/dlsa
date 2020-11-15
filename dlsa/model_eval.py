@@ -5,7 +5,7 @@ from pyspark.sql.functions import pandas_udf, PandasUDFType
 import numpy as np
 import pandas as pd
 
-from models import logistic_model_eval
+from dlsa.models import logistic_model_eval
 
 def logistic_model_eval_sdf(data_sdf, par, fit_intercept, Y_name, dummy_info, data_info):
     """Evaluate model performance

@@ -1,4 +1,4 @@
-#! /usr/bin/env python3
+#! /usr/bin/env python3.7
 
 import findspark
 findspark.init("/usr/lib/spark-current")
@@ -25,17 +25,17 @@ import string
 from math import ceil
 
 from pyspark.sql.types import *
-from pyspark.sql import functions
+from pyspark.sql import functions as F
 from pyspark.sql.functions import pandas_udf, PandasUDFType, monotonically_increasing_id
 
-from dlsa import dlsa, dlsa_r, dlsa_mapred
+from dlsa import dlsa, dlsa_mapred, dlsa_r
 
 # os.chdir("dlsa") # TEMP code
-from models import simulate_logistic, logistic_model
-from model_eval import logistic_model_eval_sdf
-
-from utils import clean_airlinedata, insert_partition_id_pdf
-from utils_spark import convert_schema
+from dlsa.models import simulate_logistic, logistic_model
+from dlsa.model_eval import logistic_model_eval_sdf
+from dlsa.sdummies import get_sdummies
+from dlsa.utils import clean_airlinedata, insert_partition_id_pdf
+from dlsa.utils_spark import convert_schema
 
 from sklearn.linear_model import LogisticRegression
 
@@ -92,7 +92,8 @@ if using_data in ["simulated_pdf"]:
     Y_name = "label"
     dummy_info = []
     data_info = []
-    convert_dummies = []
+    # convert_dummies = []
+    dummy_columns = []
 
 elif using_data in ["real_pdf", "real_hdfs"]:
     #  Settings for using real data
@@ -153,7 +154,11 @@ elif using_data in ["real_pdf", "real_hdfs"]:
 
     dummy_info_path = "~/running/data_raw/dummy_info.pkl"
     dummy_info = pickle.load(open(os.path.expanduser(dummy_info_path), "rb"))
-    convert_dummies = list(dummy_info['factor_selected'].keys())
+    # convert_dummies = list(dummy_info['factor_selected'].keys())
+    # dummy_columns = list(dummy_info['factor_selected'].keys())
+    dummy_columns = [
+        'Year', 'Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'
+    ]
 
     n_files = len(file_path)
     partition_num_sub = []
@@ -185,7 +190,8 @@ for file_no_i in range(n_files):
             partition_num_sub.append(partition_num_sub[0])
 
     elif using_data == "real_pdf":  # Read real data
-        data_pdf_i0 = clean_airlinedata(os.path.expanduser(file_path[file_no_i]),
+        data_pdf_i0 = clean_airlinedata(os.path.expanduser(
+            file_path[file_no_i]),
                                         fit_intercept=fit_intercept)
 
         # Create an full-column empty DataFrame and resize current subset
@@ -211,7 +217,7 @@ for file_no_i in range(n_files):
     elif using_data == "real_hdfs":
         isub = 0  # fixed, never changed
 
-        # Read HDFS to Spark DataFrame
+        # Read HDFS to Spark DataFrame and clean NAs
         data_sdf_i = spark.read.csv(file_path[file_no_i],
                                     header=True,
                                     schema=schema_sdf)
@@ -222,20 +228,13 @@ for file_no_i in range(n_files):
         # https://spark.apache.org/docs/latest/ml-features.html#binarizer
         data_sdf_i = data_sdf_i.withColumn(
             Y_name,
-            functions.when(data_sdf_i[Y_name] > 0, 1).otherwise(0))
+            F.when(data_sdf_i[Y_name] > 0, 1).otherwise(0))
 
-
-        from pyspark.sql.functions import col, countDistinct
-
-        dummy_columns = ['Year', 'Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest']
-        zz = data_sdf_i.agg(*(countDistinct(col(c)).alias(c) for c in dummy_columns))
 
         # Replace dropped factors with `00_OTHERS`. The trick of `00_` prefix will allow
         # user to drop it as the first level when intercept is used.
-        for i in dummy_info['factor_dropped'].keys():
-            if len(dummy_info['factor_dropped'][i]) > 0:
-                data_sdf_i = data_sdf_i.replace(
-                    dummy_info['factor_dropped'][i], '00_OTHERS', i)
+        get_sdummies
+
 
         sample_size_sub.append(data_sdf_i.count())
         partition_num_sub.append(
