@@ -75,7 +75,7 @@ model_saved_file_name = '~/running/logistic_dlsa_model_' + time.strftime(
 
 # If save data descriptive statistics
 # data_info = []
-data_info_path = {'save': True, 'path': "~/running/data_raw/data_info.csv"}
+data_info_path = {'save': True, 'path': "~/running/data/airdelay/data_info.csv"}
 
 # Model settings
 #-----------------------------------------------------------------------------------------
