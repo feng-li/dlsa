@@ -16,7 +16,7 @@ spark = pyspark.sql.SparkSession.builder.config(conf=conf).getOrCreate()
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
 spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "true")
 
-spark.sparkContext.addPyFile("dlsa.zip")
+# spark.sparkContext.addPyFile("dlsa.zip")
 
 # System functions
 import os, sys, time
@@ -35,7 +35,7 @@ from pyspark.sql import functions as F
 from pyspark.sql.functions import pandas_udf, PandasUDFType, monotonically_increasing_id
 
 # dlsa functions
-from dlsa import dlsa, dlsa_mapred, dlsa_r
+from dlsa import dlsa, dlsa_mapred#, dlsa_r
 from dlsa.models import simulate_logistic, logistic_model
 from dlsa.model_eval import logistic_model_eval_sdf
 from dlsa.sdummies import get_sdummies
@@ -44,7 +44,7 @@ from dlsa.utils_spark import convert_schema
 
 from sklearn.linear_model import LogisticRegression
 
-from rpy2.robjects import numpy2ri
+# from rpy2.robjects import numpy2ri
 
 # FIXME: PATH BUG
 # spark.sparkContext.addPyFile("/home/lifeng/code/dlsa/models.py")
@@ -75,12 +75,12 @@ model_saved_file_name = '~/running/logistic_dlsa_model_' + time.strftime(
 
 # If save data descriptive statistics
 # data_info = []
-data_info_path = {'save': False, 'path': "~/running/data_raw/data_info.csv"}
+data_info_path = {'save': True, 'path': "~/running/data_raw/data_info.csv"}
 
 # Model settings
 #-----------------------------------------------------------------------------------------
 fit_intercept = True
-fit_algorithms = ['dlsa', 'spark_logisticregression']
+fit_algorithms = ['dlsa_logistic', 'spark_logistic']
 
 # Settings for using simulated data
 #-----------------------------------------------------------------------------------------
@@ -301,7 +301,7 @@ for file_no_i in range(n_files):
                   data_info_path["path"])
 
     # Independent fit chunked data with UDF.
-    if 'dlsa' in fit_algorithms:
+    if 'dlsa_logistic' in fit_algorithms:
         tic_repartition = time.perf_counter()
         data_sdf_i = data_sdf_i.repartition(partition_num_sub[file_no_i],
                                             "partition_id")
@@ -340,7 +340,7 @@ for file_no_i in range(n_files):
 if using_data == "simulated_pdf":
     p = data_pdf_i.shape[1]
 
-if 'dlsa' in fit_algorithms:
+if 'dlsa_logistic' in fit_algorithms:
     # sample_size=model_mapped_sdf.count()
     sample_size = sum(sample_size_sub)
 
@@ -424,7 +424,7 @@ if 'dlsa' in fit_algorithms:
     # out_dlsa = dlsa(Sig_inv_=Sig_inv,
     #                 beta_=beta_byOLS,
     #                 sample_size=data_sdf.count(), intercept=False)
-elif 'spark_logisticregression' in fit_algorithms:
+elif 'spark_logistic' in fit_algorithms:
     model_mapped_sdf, dummy_info = get_sdummies(sdf=model_mapped_sdf,
                                                 keep_top=dummy_keep_top,
                                                 replace_with="zzz_OTHERS",
@@ -463,7 +463,4 @@ elif 'spark_logisticregression' in fit_algorithms:
 
     modelcoefficients=np.array(lrModel.coefficients)
 
-    out = [
-        sample_size, p, memsize, time_parallelize, time_clusterrun, time_wallclock
-    ]
     print(", ".join(format(x, "10.4f") for x in out))
