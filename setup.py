@@ -7,7 +7,7 @@ def read(file):
 setup(name='dlsa',
       use_scm_version=True,
       setup_requires=['setuptools_scm'],
-      version='0.01',
+      version='0.1.1',
       description='Distributed Least Squares Approximations',
       keywords='spark, spark-ml, pyspark, mapreduce',
       long_description=read('README.md'),
