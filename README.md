@@ -21,14 +21,29 @@ In this work, we develop a distributed least squares approximation (DLSA) method
 
   See [`setup.py`](setup.py) for detailed requirements.
 
+## Make a Python module
+
+- You firstly need to pack the core code into Python module
+
+```sh
+make zip
+```
+A `dlsa.zip` file will then be created within the folder `projects/`.
+
+- Then you should be able to upload it to the Spark cluster inside your Python script.
+
+```
+spark.sparkContext.addPyFile("dlsa.zip")
+```
+
 ## Run the [PySpark](https://spark.apache.org/docs/latest/api/python/index.html) code on the Spark platform
 ```sh
-  ./bash/spark_dlsa_run.sh
+  projects/bash/spark_dlsa_run.sh
  ```
  or simply run
 
  ```py
-   ./logistic_dlsa.py
+   .projects/logistic_dlsa.py
  ```
 
 ## References
