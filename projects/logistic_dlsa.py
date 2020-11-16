@@ -2,7 +2,7 @@
 
 import findspark
 findspark.init("/usr/lib/spark-current")
-if __name__ == '__main__': # and __package__ is None:
+if __name__ == '__main__':  # and __package__ is None:
     from os import sys, path
     sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
@@ -32,10 +32,14 @@ from math import ceil
 # Spark functions
 from pyspark.sql.types import *
 from pyspark.sql import functions as F
-from pyspark.sql.functions import pandas_udf, PandasUDFType, monotonically_increasing_id
+from pyspark.sql.functions import udf, pandas_udf, PandasUDFType, monotonically_increasing_id, log
+
+from pyspark.ml.classification import LogisticRegression as SLogisticRegression  # do not mixed with sklearn's logisticregression
+from pyspark.ml.linalg import Vectors
+from pyspark.ml.feature import VectorAssembler, StandardScaler
 
 # dlsa functions
-from dlsa.dlsa import dlsa, dlsa_mapred#, dlsa_r
+from dlsa.dlsa import dlsa, dlsa_mapred  #, dlsa_r
 from dlsa.models import simulate_logistic, logistic_model
 from dlsa.model_eval import logistic_model_eval_sdf
 from dlsa.sdummies import get_sdummies
@@ -75,7 +79,10 @@ model_saved_file_name = '~/running/logistic_dlsa_model_' + time.strftime(
 
 # If save data descriptive statistics
 # data_info = []
-data_info_path = {'save': True, 'path': "~/running/data/airdelay/data_info.csv"}
+data_info_path = {
+    'save': True,
+    'path': "~/running/data/airdelay/data_info.csv"
+}
 
 # Model settings
 #-----------------------------------------------------------------------------------------
@@ -432,33 +439,47 @@ elif 'spark_logistic' in fit_algorithms:
                                           dummy_columns=dummy_columns,
                                           dummy_info=dummy_info)
 
-    # Make features
-    from pyspark.ml.classification import LogisticRegression
-    from pyspark.ml.linalg import Vectors
-    from pyspark.ml.feature import VectorAssembler, StandardScaler
-
     # Feature columns
     features_x_name = list(set(usecols_x) - set(Y_name) - set(dummy_columns))
-    dummy_columns_ONEHOT = ["ONEHOT_" + x for x in  dummy_columns]
+    dummy_columns_ONEHOT = ["ONEHOT_" + x for x in dummy_columns]
     features_name = features_x_name + dummy_columns_ONEHOT
 
-    assembler_x = VectorAssembler(inputCols=features_x_name, outputCol="features_x_raw")
+    assembler_x = VectorAssembler(inputCols=features_x_name,
+                                  outputCol="features_x_raw")
     data_sdf_i = assembler_x.transform(data_sdf_i)
 
     # Standardized the non-categorical data.
-    scaler = StandardScaler(inputCol="features_x_raw", outputCol="features_x_std",
-                            withStd=True, withMean=True)
+    scaler = StandardScaler(inputCol="features_x_raw",
+                            outputCol="features_x_std",
+                            withStd=True,
+                            withMean=True)
     scalerModel = scaler.fit(data_sdf_i)
     data_sdf_i = scalerModel.transform(data_sdf_i)
 
-    assembler_all = VectorAssembler(inputCols=["features_x_std"] + dummy_columns_ONEHOT, outputCol="features")
+    assembler_all = VectorAssembler(inputCols=["features_x_std"] +
+                                    dummy_columns_ONEHOT,
+                                    outputCol="features")
     data_sdf_i = assembler_all.transform(data_sdf_i)
 
-    lr = LogisticRegression(labelCol=Y_name, featuresCol="features") #, maxIter=100, regParam=0.3, elasticNetParam=0.8)
+    # Model specification
+    lr = SLogisticRegression(
+        labelCol=Y_name, featuresCol="features"
+    )  #, maxIter=100, regParam=0.3, elasticNetParam=0.8)
 
     # Fit the model
     lrModel = lr.fit(data_sdf_i)
 
-    # Model fitted
+    # Model fitting results
     print(lrModel.intercept)
     print(lrModel.coefficients)
+
+    # Calculate loglikelihood
+    prob = lrModel.summary.predictions.select("probability")
+    split_p0 = udf(lambda value: value[0].item(), FloatType())
+    split_p1 = udf(lambda value: value[1].item(), FloatType())
+
+    prob = prob.withColumn('p0', split_p0('probability')).withColumn(
+        'p1', split_p1('probability'))
+    prob = prob.withColumn("logdens", log(prob["p0"]) + log(prob["p1"]))
+    logLike = prob.select("logdens").groupby().sum()
+    logLike.show()
