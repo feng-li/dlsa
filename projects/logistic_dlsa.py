@@ -80,7 +80,8 @@ data_info_path = {'save': True, 'path': "~/running/data/airdelay/data_info.csv"}
 # Model settings
 #-----------------------------------------------------------------------------------------
 fit_intercept = True
-fit_algorithms = ['dlsa_logistic', 'spark_logistic']
+# fit_algorithms = ['dlsa_logistic', 'spark_logistic']
+fit_algorithms = ['spark_logistic']
 
 # Settings for using simulated data
 #-----------------------------------------------------------------------------------------
@@ -425,10 +426,11 @@ if 'dlsa_logistic' in fit_algorithms:
     #                 beta_=beta_byOLS,
     #                 sample_size=data_sdf.count(), intercept=False)
 elif 'spark_logistic' in fit_algorithms:
-    model_mapped_sdf, dummy_info = get_sdummies(sdf=model_mapped_sdf,
-                                                keep_top=dummy_keep_top,
-                                                replace_with="zzz_OTHERS",
-                                                dummy_info=dummy_info)
+    data_sdf_i, dummy_info = get_sdummies(sdf=data_sdf_i,
+                                          keep_top=dummy_keep_top,
+                                          replace_with="zzz_OTHERS",
+                                          dummy_columns=dummy_columns,
+                                          dummy_info=dummy_info)
 
     # Make features
     from pyspark.ml.classification import LogisticRegression
@@ -441,26 +443,22 @@ elif 'spark_logistic' in fit_algorithms:
     features_name = features_x_name + dummy_columns_ONEHOT
 
     assembler_x = VectorAssembler(inputCols=features_x_name, outputCol="features_x_raw")
-    model_mapped_sdf = assembler_x.transform(model_mapped_sdf)
+    data_sdf_i = assembler_x.transform(data_sdf_i)
 
     # Standardized the non-categorical data.
     scaler = StandardScaler(inputCol="features_x_raw", outputCol="features_x_std",
                             withStd=True, withMean=True)
-    scalerModel = scaler.fit(model_mapped_sdf)
-    model_mapped_sdf = scalerModel.transform(model_mapped_sdf)
+    scalerModel = scaler.fit(data_sdf_i)
+    data_sdf_i = scalerModel.transform(data_sdf_i)
 
     assembler_all = VectorAssembler(inputCols=["features_x_std"] + dummy_columns_ONEHOT, outputCol="features")
-    model_mapped_sdf = assembler_all.transform(model_mapped_sdf)
+    data_sdf_i = assembler_all.transform(data_sdf_i)
 
     lr = LogisticRegression(labelCol=Y_name, featuresCol="features") #, maxIter=100, regParam=0.3, elasticNetParam=0.8)
 
     # Fit the model
-    lrModel = lr.fit(model_mapped_sdf)
+    lrModel = lr.fit(data_sdf_i)
 
     # Model fitted
     print(lrModel.intercept)
     print(lrModel.coefficients)
-
-    modelcoefficients=np.array(lrModel.coefficients)
-
-    print(", ".join(format(x, "10.4f") for x in out))

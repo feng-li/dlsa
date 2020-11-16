@@ -50,7 +50,7 @@ def get_sdummies(sdf, dummy_columns, keep_top, replace_with='zzz_other', dummy_i
             # factor_selected_names[string_col] = [string_col + '_' + str(x) for x in factor_new ]
 
         else:
-            keep_list = factor_set["factor_selected"][string_col]
+            keep_list = dummy_info["factor_selected"][string_col]
 
         # Replace dropped dummy factors with grouped factors.
         sdf = sdf.withColumn(
