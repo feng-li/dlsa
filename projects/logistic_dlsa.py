@@ -469,10 +469,6 @@ elif 'spark_logistic' in fit_algorithms:
     # Fit the model
     lrModel = lr.fit(data_sdf_i)
 
-    # Model fitting results
-    print(lrModel.intercept)
-    print(lrModel.coefficients)
-
     # Calculate loglikelihood
     prob = lrModel.summary.predictions.select("probability")
     split_p0 = udf(lambda value: value[0].item(), FloatType())
@@ -482,4 +478,8 @@ elif 'spark_logistic' in fit_algorithms:
         'p1', split_p1('probability'))
     prob = prob.withColumn("logdens", log(prob["p0"]) + log(prob["p1"]))
     logLike = prob.select("logdens").groupby().sum()
+
+    # Print results
+    print(lrModel.intercept)
+    print(lrModel.coefficients)
     logLike.show()
