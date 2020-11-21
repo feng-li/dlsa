@@ -162,10 +162,18 @@ elif using_data in ["real_pdf", "real_hdfs"]:
     ])
     # s = spark.read.schema("col0 INT, col1 DOUBLE")
 
-    dummy_info_path = "~/running/data/airdelay/dummy_info.pkl"
-    dummy_info = pickle.load(open(os.path.expanduser(dummy_info_path), "rb"))
-    # convert_dummies = list(dummy_info['factor_selected'].keys())
-    # dummy_columns = list(dummy_info['factor_selected'].keys())
+    # dummy_info_path = "~/running/data/airdelay/dummy_info.pkl"
+    dummy_info_path = {
+        'save': False, # If False, load it from the path
+        'path': "~/running/data/airdelay/dummy_info_small.pkl"
+    }
+
+    if len(dummy_info_path) > 0:
+        if dummy_info_path["save"] is False:
+            dummy_info = pickle.load(open(os.path.expanduser(dummy_info_path["path"]), "rb"))
+        else:
+            print("Create dummy and information!")
+
     dummy_columns = [
         'Year', 'Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'
     ]
@@ -441,9 +449,6 @@ elif 'spark_logistic' in fit_algorithms:
 
     # Feature columns
     features_x_name = list(set(usecols_x) - set(Y_name) - set(dummy_columns))
-    dummy_columns_ONEHOT = ["ONEHOT_" + x for x in dummy_columns]
-    features_name = features_x_name + dummy_columns_ONEHOT
-
     assembler_x = VectorAssembler(inputCols=features_x_name,
                                   outputCol="features_x_raw")
     data_sdf_i = assembler_x.transform(data_sdf_i)
@@ -456,8 +461,8 @@ elif 'spark_logistic' in fit_algorithms:
     scalerModel = scaler.fit(data_sdf_i)
     data_sdf_i = scalerModel.transform(data_sdf_i)
 
-    assembler_all = VectorAssembler(inputCols=["features_x_std"] +
-                                    dummy_columns_ONEHOT,
+    # Assemble all vectors
+    assembler_all = VectorAssembler(inputCols=["features_x_std", "features_ONEHOT"],
                                     outputCol="features")
     data_sdf_i = assembler_all.transform(data_sdf_i)
 
