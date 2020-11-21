@@ -9,7 +9,7 @@ import sys
 def get_sdummies(sdf,
                  dummy_columns,
                  keep_top,
-                 replace_with='zzz_other',
+                 replace_with='zzz_others',
                  dummy_info=[],
                  dropLast=True):
     """Index string columns and group all observations that occur in less then a keep_top% of the rows in sdf per column.
@@ -58,6 +58,19 @@ def get_sdummies(sdf,
             factor_dropped[string_col] = list(
                 set(factor_set[string_col]) - set(keep_list))
             # factor_selected_names[string_col] = [string_col + '_' + str(x) for x in factor_new ]
+
+            # Replace dropped dummies with indicators like `others`
+            if len(factor_dropped[string_col]) == 0:
+                factor_new = []
+            else:
+                factor_new = [replace_with]
+            factor_new.extend(factor_selected[string_col])
+
+            factor_selected_names[string_col] = [
+                string_col + '_' + str(x) for x in factor_new
+            ]
+
+
 
         else:
             keep_list = dummy_info["factor_selected"][string_col]

@@ -80,7 +80,7 @@ model_saved_file_name = '~/running/logistic_dlsa_model_' + time.strftime(
 # If save data descriptive statistics
 # data_info = []
 data_info_path = {
-    'save': True,
+    'save': False,
     'path': "~/running/data/airdelay/data_info.csv"
 }
 
@@ -88,7 +88,8 @@ data_info_path = {
 #-----------------------------------------------------------------------------------------
 fit_intercept = True
 # fit_algorithms = ['dlsa_logistic', 'spark_logistic']
-fit_algorithms = ['spark_logistic']
+fit_algorithms = ['dlsa_logistic']
+# fit_algorithms = ['spark_logistic']
 
 # Settings for using simulated data
 #-----------------------------------------------------------------------------------------
@@ -164,7 +165,7 @@ elif using_data in ["real_pdf", "real_hdfs"]:
 
     # dummy_info_path = "~/running/data/airdelay/dummy_info.pkl"
     dummy_info_path = {
-        'save': False, # If False, load it from the path
+        'save': True, # If False, load it from the path
         'path': "~/running/data/airdelay/dummy_info_small.pkl"
     }
 
@@ -172,6 +173,7 @@ elif using_data in ["real_pdf", "real_hdfs"]:
         if dummy_info_path["save"] is False:
             dummy_info = pickle.load(open(os.path.expanduser(dummy_info_path["path"]), "rb"))
         else:
+            dummy_info = []
             print("Create dummy and information!")
 
     dummy_columns = [
