@@ -78,9 +78,8 @@ model_saved_file_name = '~/running/logistic_dlsa_model_' + time.strftime(
     "%Y-%m-%d-%H:%M:%S", time.localtime()) + '.pkl'
 
 # If save data descriptive statistics
-# data_info = []
 data_info_path = {
-    'save': False,
+    'save': True,
     'path': "~/running/data/airdelay/data_info.csv"
 }
 
@@ -165,16 +164,16 @@ elif using_data in ["real_pdf", "real_hdfs"]:
 
     # dummy_info_path = "~/running/data/airdelay/dummy_info.pkl"
     dummy_info_path = {
-        'save': True, # If False, load it from the path
+        'save': True,  # If False, load it from the path
         'path': "~/running/data/airdelay/dummy_info_small.pkl"
     }
 
-    if len(dummy_info_path) > 0:
-        if dummy_info_path["save"] is False:
-            dummy_info = pickle.load(open(os.path.expanduser(dummy_info_path["path"]), "rb"))
-        else:
-            dummy_info = []
-            print("Create dummy and information!")
+    if dummy_info_path["save"] is False:
+        dummy_info = pickle.load(
+            open(os.path.expanduser(dummy_info_path["path"]), "rb"))
+    else:
+        dummy_info = []
+        print("Create dummy and information!")
 
     dummy_columns = [
         'Year', 'Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'
@@ -305,18 +304,18 @@ for file_no_i in range(n_files):
     ## MODELING ON PARTITIONED DATA
     ##----------------------------------------------------------------------------------------
     # Load or Create descriptive statistics used for standardizing data.
-    if len(data_info_path) > 0:
-        if data_info_path["save"] == True:
-            data_info = data_sdf_i.describe().toPandas(
-            )  # descriptive statistics
-            data_info.to_csv(os.path.expanduser(data_info_path["path"]),
-                             index=False)
-            print("Descriptive statistics for data are saved to:\t" +
-                  data_info_path["path"])
-        else:
-            data_info = pd.read_csv(os.path.expanduser(data_info_path["path"]))
-            print("Descriptive statistics for data are loaded from file:\t" +
-                  data_info_path["path"])
+    if data_info_path["save"] is True:
+        # descriptive statistics
+        data_info = data_sdf_i.describe().toPandas()
+        data_info.to_csv(os.path.expanduser(data_info_path["path"]),
+                         index=False)
+        print("Descriptive statistics for data are saved to:\t" +
+              data_info_path["path"])
+    else:
+        # Load data info
+        data_info = pd.read_csv(os.path.expanduser(data_info_path["path"]))
+        print("Descriptive statistics for data are loaded from file:\t" +
+              data_info_path["path"])
 
     # Independent fit chunked data with UDF.
     if 'dlsa_logistic' in fit_algorithms:
@@ -464,13 +463,16 @@ elif 'spark_logistic' in fit_algorithms:
     data_sdf_i = scalerModel.transform(data_sdf_i)
 
     # Assemble all vectors
-    assembler_all = VectorAssembler(inputCols=["features_x_std", "features_ONEHOT"],
-                                    outputCol="features")
+    assembler_all = VectorAssembler(
+        inputCols=["features_x_std", "features_ONEHOT"], outputCol="features")
     data_sdf_i = assembler_all.transform(data_sdf_i)
 
     # Model specification
     lr = SLogisticRegression(
-        labelCol=Y_name, featuresCol="features"
+        labelCol=Y_name,
+        featuresCol="features",
+        fitIntercept=fit_intercept, # Already standardized with non-dummy columns
+        standardization=False
     )  #, maxIter=100, regParam=0.3, elasticNetParam=0.8)
 
     # Fit the model
