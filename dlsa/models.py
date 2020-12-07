@@ -51,6 +51,9 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], data_i
     if len(dummy_info) > 0:
         convert_dummies = list(dummy_info['factor_selected'].keys())
 
+        # Replace dropped dummies with given key for non-empty
+        sample_df = sample_df.replace({k: v for k, v in dummy_info["factor_dropped"].items() if len(v) > 0}, "OOO_OTHERS")
+        # Create dummy factors
         X_with_dummies = pd.get_dummies(data=sample_df,
                                         drop_first=fit_intercept,
                                         columns=convert_dummies,
@@ -148,6 +151,9 @@ def logistic_model_eval(sample_df, Y_name,  par, fit_intercept=False, dummy_info
     if len(dummy_info) > 0:
         convert_dummies = list(dummy_info['factor_selected'].keys())
 
+        # Replace dropped dummies with given key for non-empty
+        sample_df = sample_df.replace({k: v for k, v in dummy_info["factor_dropped"].items() if len(v) > 0}, "OOO_OTHERS")
+        # Create dummy factors
         X_with_dummies = pd.get_dummies(data=sample_df,
                                         drop_first=fit_intercept,
                                         columns=convert_dummies,
