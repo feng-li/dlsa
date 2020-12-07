@@ -84,7 +84,7 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], data_i
         x_train = sample_df.drop(['partition_id', Y_name], axis=1)
         usecols_x0 = x_train.columns
 
-    # Standardize the data with global mean and variance
+    # Standardize the data with the global mean and variance
     if len(data_info) > 0:
         for i in usecols_x0:
             x_train[i]=(x_train[i] - float(data_info[i][1])) / float(data_info[i][2])

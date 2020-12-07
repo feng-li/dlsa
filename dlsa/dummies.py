@@ -149,14 +149,12 @@ def select_dummy_factors_from_file(file, header, dummy_columns, keep_top,
 if __name__ == "__main__":
 
     # User settings
-    file = os.path.expanduser("~/running/data/airdelay/airdelay_full.csv")
+    file = os.path.expanduser("~/running/data/airdelay/airdelay_small.csv")
     header = True
-    dummy_columns = [
-        'Year', 'Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'
-    ]
-    keep_top = [1, 1, 1, 0.8, 0.8, 0.8]
-    replace_with = 'zzz_OTHERS'
-    pickle_file = os.path.expanduser("~/running/data/airdelay/dummy_info.pkl")
+    dummy_columns = ['Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest']
+    keep_top = [1, 1, 0.8, 0.9, 0.9]
+    replace_with = '000_OTHERS'
+    pickle_file = os.path.expanduser("~/running/data/airdelay/dummy_info_small.pkl")
 
     dummy_info = select_dummy_factors_from_file(file, header, dummy_columns,
                                                 keep_top, replace_with,

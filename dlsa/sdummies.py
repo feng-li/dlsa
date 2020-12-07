@@ -9,7 +9,7 @@ import sys
 def get_sdummies(sdf,
                  dummy_columns,
                  keep_top,
-                 replace_with='zzz_others',
+                 replace_with='000_OTHERS',
                  dummy_info=[],
                  dropLast=True):
     """Index string columns and group all observations that occur in less then a keep_top% of the rows in sdf per column.
@@ -41,8 +41,7 @@ def get_sdummies(sdf,
                 'count', ascending=False)
             sdf_column_count = sdf_column_count.withColumn(
                 "cumsum",
-                F.sum("count").over(Window.partitionBy().orderBy().rowsBetween(
-                    -sys.maxsize, 0)))
+                F.sum("count").over(Window.orderBy("count")))
 
             # Obtain top dummy factors
             sdf_column_top_dummies = sdf_column_count.withColumn(

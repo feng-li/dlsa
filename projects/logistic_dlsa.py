@@ -112,7 +112,8 @@ elif using_data in ["real_pdf", "real_hdfs"]:
 
     # file_path = ['/running/data_raw/xa' + str(letter) + '.csv' for letter in string.ascii_lowercase[0:1]] # HDFS file
 
-    file_path = ['/data/airdelay_small.csv']  # HDFS file
+    file_path = ['/data/airdelay_full.csv']  # HDFS file
+    # file_path = ['/data/airdelay_small.csv']  # HDFS file
 
     usecols_x = [
         'Year',
@@ -123,7 +124,7 @@ elif using_data in ["real_pdf", "real_hdfs"]:
         'CRSDepTime',
         'CRSArrTime',
         'UniqueCarrier',
-        'ActualElapsedTime',  # 'AirTime',
+        'ActualElapsedTime',
         'Origin',
         'Dest',
         'Distance'
@@ -164,26 +165,27 @@ elif using_data in ["real_pdf", "real_hdfs"]:
 
     # dummy_info_path = "~/running/data/airdelay/dummy_info.pkl"
     dummy_info_path = {
-        'save': True,  # If False, load it from the path
-        'path': "~/running/data/airdelay/dummy_info_small.pkl"
+        # 'save': True,  # If False, load it from the path
+        'save': False,  # If False, load it from the path
+        # 'path': "~/running/data/airdelay/dummy_info_small.pkl"
+        'path': "~/running/data/airdelay/dummy_info.pkl"
     }
 
-    if dummy_info_path["save"] is False:
+    if dummy_info_path["save"] is True:
+        dummy_info = []
+        print("Create dummy and information and save it!")
+    else:
         dummy_info = pickle.load(
             open(os.path.expanduser(dummy_info_path["path"]), "rb"))
-    else:
-        dummy_info = []
-        print("Create dummy and information!")
 
-    dummy_columns = [
-        'Year', 'Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest'
-    ]
-    dummy_keep_top = [1, 1, 1, 0.8, 0.8, 0.8]
+
+    dummy_columns = ['Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest']
+    dummy_keep_top = [1, 1, 0.8, 0.9, 0.9]
 
     n_files = len(file_path)
     partition_num_sub = []
     max_sample_size_per_sdf = 100000  # No effect with `real_hdfs` data
-    sample_size_per_partition = 100000
+    sample_size_per_partition = 1000000
 
     Y_name = "ArrDelay"
     sample_size_sub = []
@@ -442,11 +444,17 @@ if 'dlsa_logistic' in fit_algorithms:
     #                 beta_=beta_byOLS,
     #                 sample_size=data_sdf.count(), intercept=False)
 elif 'spark_logistic' in fit_algorithms:
-    data_sdf_i, dummy_info = get_sdummies(sdf=data_sdf_i,
+    data_sdf_i2, dummy_info = get_sdummies(sdf=data_sdf_i,
                                           keep_top=dummy_keep_top,
-                                          replace_with="zzz_OTHERS",
+                                          replace_with="000_OTHERS",
                                           dummy_columns=dummy_columns,
-                                          dummy_info=dummy_info)
+                                           dummy_info=dummy_info,
+                                           dropLast=fit_intercept)
+
+    if dummy_info_path["save"] is True:
+        pickle.dump(dummy_info, open(os.path.expanduser(dummy_info_path["path"]), 'wb'))
+        print("dummy_info saved in:\t" + dummy_info_path["path"])
+
 
     # Feature columns
     features_x_name = list(set(usecols_x) - set(Y_name) - set(dummy_columns))
