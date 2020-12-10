@@ -2,8 +2,7 @@
 
 from pyspark.sql.types import *
 
-
-def convert_schema(usecols_x, dummy_info, fit_intercept):
+def convert_schema(usecols_x, dummy_info, fit_intercept, dummy_factors_baseline):
     '''Convert schema type for large data frame
 
     '''
@@ -14,15 +13,18 @@ def convert_schema(usecols_x, dummy_info, fit_intercept):
             schema_fields.append(StructField(j, DoubleType(), True))
 
     else:
-        # Use dummy
+        # Use dummies
         convert_dummies = list(dummy_info['factor_selected'].keys())
 
+        # schema for non-dummy columns
         for x in list(set(usecols_x) - set(convert_dummies)):
             schema_fields.append(StructField(x, DoubleType(), True))
 
         for i in convert_dummies:
-            for j in dummy_info["factor_selected_names"][i][fit_intercept:]:
-                schema_fields.append(StructField(j, DoubleType(), True))
+            factor_selected_names_sorted = sorted(dummy_info["factor_selected_names"][i])
+            for j in factor_selected_names_sorted:
+                if j not in dummy_factors_baseline:
+                    schema_fields.append(StructField(j, DoubleType(), True))
 
 
     if fit_intercept:

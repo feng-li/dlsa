@@ -335,7 +335,7 @@ for file_no_i in range(n_files):
             StructField('par_id', IntegerType(), True),
             StructField('coef', DoubleType(), True),
             StructField('Sig_invMcoef', DoubleType(), True)
-        ] + convert_schema(usecols_x, dummy_info, fit_intercept))
+        ] + convert_schema(usecols_x, dummy_info, fit_intercept, dummy_factors_baseline))
 
         @pandas_udf(schema_beta, PandasUDFType.GROUPED_MAP)
         def logistic_model_udf(sample_df):

@@ -68,13 +68,14 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], dummy_
         x_train = X_with_dummies.drop(['partition_id', Y_name] + dummy_factors_baseline, axis = 1)
 
         # Check if any dummy column is not in the data chunk.
-        usecols_x0 = list(set(sample_df.columns.drop(['partition_id', Y_name])) - set(convert_dummies))
+        usecols_x0 = sorted(list(set(sample_df.columns.drop(['partition_id', Y_name])) - set(convert_dummies)))
         usecols_x = usecols_x0.copy()
         for i in convert_dummies:
-            for j in dummy_info["factor_selected_names"][i]:
+            factor_selected_names_sorted = sorted(dummy_info["factor_selected_names"][i])
+            for j in factor_selected_names_sorted:
                 usecols_x.append(j)
 
-        usecols_x = sorted(list(set(usecols_x)-set(dummy_factors_baseline)))
+        usecols_x = [i for i in usecols_x if i not in dummy_factors_baseline]
         usecols_full = ['par_id', "coef", "Sig_invMcoef"] + col_intercept_name + usecols_x
 
         # raise Exception("usecols_full:\t" + str(len(usecols_full)))
@@ -92,6 +93,7 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], dummy_
     else:
         x_train = sample_df.drop(['partition_id', Y_name] + dummy_factors_baseline, axis=1)
         usecols_x0 = x_train.columns
+        usecols_x = usecols_x0
 
     # Standardize the data with the global mean and variance
     if len(data_info) > 0:
@@ -99,7 +101,7 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], dummy_
             x_train[i]=(x_train[i] - float(data_info[i][1])) / float(data_info[i][2])
 
 
-    x_train.sort_index(axis=1, inplace=True)
+    x_train = x_train.reindex(columns=usecols_x)
 
     # raise Exception("x_train shape:" + str(list(x_train.columns)))
 
@@ -125,8 +127,6 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], dummy_
         p = model.coef_.size
         coef = model.coef_.reshape(p, 1) # p-by-1
 
-
-
     Sig_inv = x_train.T.dot(np.multiply((prob*(1-prob))[:,None],x_train)) # p-by-p
     Sig_invMcoef = Sig_inv.dot(coef) # p-by-1
 
@@ -146,8 +146,6 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], dummy_
 
     return out
     # return pd.DataFrame(Sig_inv)
-
-
 
 
 def logistic_model_eval(sample_df, Y_name,  par, fit_intercept=False, dummy_info=[], dummy_factors_baseline=[], data_info=[]):
@@ -174,12 +172,14 @@ def logistic_model_eval(sample_df, Y_name,  par, fit_intercept=False, dummy_info
         x_train = X_with_dummies.drop(['partition_id', Y_name] + dummy_factors_baseline, axis = 1)
 
         # Check if any dummy column is not in the data chunk.
-        usecols_x0 = list(set(sample_df.columns.drop(['partition_id', Y_name])) - set(convert_dummies))
+        usecols_x0 = sorted(list(set(sample_df.columns.drop(['partition_id', Y_name])) - set(convert_dummies)))
         usecols_x = usecols_x0.copy()
         for i in convert_dummies:
-            for j in dummy_info["factor_selected_names"][i]:
+            factor_selected_names_sorted = sorted(dummy_info["factor_selected_names"][i])
+            for j in factor_selected_names_sorted:
                 usecols_x.append(j)
-        usecols_x = sorted(list(set(usecols_x)-set(dummy_factors_baseline)))
+
+        usecols_x = [i for i in usecols_x if i not in dummy_factors_baseline]
         usecols_full = ['par_id', "coef", "Sig_invMcoef"] + col_intercept_name + usecols_x
 
         # raise Exception("usecols_full:\t" + str(len(usecols_full)))
