@@ -7,7 +7,7 @@ import pandas as pd
 
 from dlsa.models import logistic_model_eval
 
-def logistic_model_eval_sdf(data_sdf, par, fit_intercept, Y_name, dummy_info, data_info):
+def logistic_model_eval_sdf(data_sdf, par, fit_intercept, Y_name, dummy_info, dummy_factors_baseline, data_info):
     """Evaluate model performance
 
 
@@ -28,6 +28,7 @@ def logistic_model_eval_sdf(data_sdf, par, fit_intercept, Y_name, dummy_info, da
                                    fit_intercept=fit_intercept,
                                    par=par,
                                    dummy_info=dummy_info,
+                                   dummy_factors_baseline=dummy_factors_baseline,
                                    data_info=data_info)
 
     # Calculate log likelihood for partitioned data

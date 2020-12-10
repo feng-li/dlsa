@@ -112,8 +112,8 @@ elif using_data in ["real_pdf", "real_hdfs"]:
 
     # file_path = ['/running/data_raw/xa' + str(letter) + '.csv' for letter in string.ascii_lowercase[0:1]] # HDFS file
 
-    file_path = ['/data/airdelay_full.csv']  # HDFS file
-    # file_path = ['/data/airdelay_small.csv']  # HDFS file
+    # file_path = ['/data/airdelay_full.csv']  # HDFS file
+    file_path = ['/data/airdelay_small.csv']  # HDFS file
 
     usecols_x = [
         'Year',
@@ -129,6 +129,12 @@ elif using_data in ["real_pdf", "real_hdfs"]:
         'Dest',
         'Distance'
     ]
+
+    # Dummy factors to drop as the baseline when fitting the intercept
+    if fit_intercept:
+        dummy_factors_baseline = ['Month_1', 'DayOfWeek_1', 'UniqueCarrier_000_OTHERS', 'Origin_000_OTHERS', 'Dest_000_OTHERS']
+    else:
+        dummy_factors_baseline = []
 
     schema_sdf = StructType([
         StructField('Year', IntegerType(), True),
@@ -167,8 +173,8 @@ elif using_data in ["real_pdf", "real_hdfs"]:
     dummy_info_path = {
         # 'save': True,  # If False, load it from the path
         'save': False,  # If False, load it from the path
-        # 'path': "~/running/data/airdelay/dummy_info_small.pkl"
-        'path': "~/running/data/airdelay/dummy_info.pkl"
+        'path': "~/running/data/airdelay/dummy_info_small.pkl"
+        # 'path': "~/running/data/airdelay/dummy_info.pkl"
     }
 
     if dummy_info_path["save"] is True:
@@ -339,6 +345,7 @@ for file_no_i in range(n_files):
                                   Y_name=Y_name,
                                   fit_intercept=fit_intercept,
                                   dummy_info=dummy_info,
+                                  dummy_factors_baseline=dummy_factors_baseline,
                                   data_info=data_info)
 
         # pdb.set_trace()
@@ -389,6 +396,7 @@ if 'dlsa_logistic' in fit_algorithms:
                                              fit_intercept=fit_intercept,
                                              Y_name=Y_name,
                                              dummy_info=dummy_info,
+                                             dummy_factors_baseline=dummy_factors_baseline,
                                              data_info=data_info)
 
     time_model_eval = time.perf_counter() - tic_model_eval

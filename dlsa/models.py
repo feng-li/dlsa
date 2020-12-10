@@ -39,7 +39,7 @@ def simulate_logistic(sample_size, p, partition_method, partition_num):
 
     return data_pdf
 
-def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], data_info=[]):
+def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], dummy_factors_baseline=[], data_info=[]):
     '''Run logistic model on the partitioned data set
 
     '''
@@ -55,11 +55,12 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], data_i
         sample_df = sample_df.replace({k: v for k, v in dummy_info["factor_dropped"].items() if len(v) > 0}, "OOO_OTHERS")
         # Create dummy factors
         X_with_dummies = pd.get_dummies(data=sample_df,
-                                        drop_first=fit_intercept,
+                                        drop_first=False, # do not drop any dummies, will drop later
                                         columns=convert_dummies,
                                         sparse=True)
 
-        x_train = X_with_dummies.drop(['partition_id', Y_name], axis = 1)
+        # Drop unused columns and dummy baseline
+        x_train = X_with_dummies.drop(['partition_id', Y_name] + dummy_factors_baseline, axis = 1)
 
         # Check if any dummy column is not in the data chunk.
         usecols_x0 = list(set(sample_df.columns.drop(['partition_id', Y_name])) - set(convert_dummies))
@@ -144,7 +145,7 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], data_i
 
 
 
-def logistic_model_eval(sample_df, Y_name,  par, fit_intercept=False, dummy_info=[], data_info=[]):
+def logistic_model_eval(sample_df, Y_name,  par, fit_intercept=False, dummy_info=[], dummy_factors_baseline=[], data_info=[]):
     '''Calculate the log-likelihood for logistic model on the partitioned data set
 
     '''
@@ -155,11 +156,11 @@ def logistic_model_eval(sample_df, Y_name,  par, fit_intercept=False, dummy_info
         sample_df = sample_df.replace({k: v for k, v in dummy_info["factor_dropped"].items() if len(v) > 0}, "OOO_OTHERS")
         # Create dummy factors
         X_with_dummies = pd.get_dummies(data=sample_df,
-                                        drop_first=fit_intercept,
+                                        drop_first=False,
                                         columns=convert_dummies,
                                         sparse=True)
 
-        x_train = X_with_dummies.drop(['partition_id', Y_name], axis = 1)
+        x_train = X_with_dummies.drop(['partition_id', Y_name] + dummy_factors_baseline, axis = 1)
 
         # Check if any dummy column is not in the data chunk.
         usecols_x0 = list(set(sample_df.columns.drop(['partition_id', Y_name])) - set(convert_dummies))
