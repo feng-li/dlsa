@@ -87,16 +87,12 @@ def downdateR(R, k):
 # b0: length p vector
 # type:'lar' or 'lasso'
 #####################################################################
-def lars_lsa(Sigma0,
-             b0,
-             intercept=True,
-             type='lar',
-             eps=np.finfo(np.float).eps,
+def lars_lsa(Sigma0, b0, intercept, n, type='lar', eps=np.finfo(np.float).eps,
              max_steps=None):
     """
 	Compute Least Angle Regression or Lasso path using LARS algorithm [1].
 	"""
-    n = np.shape(Sigma0)[0]
+    # n = np.shape(Sigma0)[0]
 
     #handle intercept
     if (intercept):

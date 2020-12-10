@@ -15,6 +15,7 @@ from pyspark.sql.types import *
 from pyspark.sql.functions import pandas_udf, PandasUDFType
 
 # import pdb
+# from dlsa.lsa import lars_lsa
 
 
 def dlsa_mapred(model_mapped_sdf):
@@ -63,7 +64,7 @@ def dlsa_mapred(model_mapped_sdf):
 dlsa_rcode = zipfile.ZipFile(pathlib.Path(__file__).parents[1]).open("dlsa/R/dlsa_alasso_func.R").read().decode("utf-8")
 robjects.r.source(exprs=rpy2.rinterface.parse(dlsa_rcode), verbose=False)
 lars_lsa = robjects.r['lars.lsa']
-# dlsa_r = robjects.r['dlsa']
+dlsa_r = robjects.r['dlsa']
 
 # Python version
 def dlsa(Sig_inv_, beta_, sample_size, fit_intercept=False):

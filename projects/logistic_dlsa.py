@@ -113,52 +113,38 @@ elif using_data in ["real_pdf", "real_hdfs"]:
     # file_path = ['/data/airdelay_full.csv']  # HDFS file
     file_path = ['/data/airdelay_small.csv']  # HDFS file
 
-    usecols_x = [
-        'Year',
-        'Month',
-        'DayofMonth',
-        'DayOfWeek',
-        'DepTime',
-        'CRSDepTime',
-        'CRSArrTime',
-        'UniqueCarrier',
-        'ActualElapsedTime',
-        'Origin',
-        'Dest',
-        'Distance'
-    ]
+    usecols_x = [ 'Year', 'Month', 'DayofMonth', 'DayOfWeek', 'DepTime', 'CRSDepTime',
+                  'CRSArrTime', 'UniqueCarrier', 'ActualElapsedTime', 'Origin', 'Dest', 'Distance' ]
 
-    schema_sdf = StructType([
-        StructField('Year', IntegerType(), True),
-        StructField('Month', IntegerType(), True),
-        StructField('DayofMonth', IntegerType(), True),
-        StructField('DayOfWeek', IntegerType(), True),
-        StructField('DepTime', DoubleType(), True),
-        StructField('CRSDepTime', DoubleType(), True),
-        StructField('ArrTime', DoubleType(), True),
-        StructField('CRSArrTime', DoubleType(), True),
-        StructField('UniqueCarrier', StringType(), True),
-        StructField('FlightNum', StringType(), True),
-        StructField('TailNum', StringType(), True),
-        StructField('ActualElapsedTime', DoubleType(), True),
-        StructField('CRSElapsedTime', DoubleType(), True),
-        StructField('AirTime', DoubleType(), True),
-        StructField('ArrDelay', DoubleType(), True),
-        StructField('DepDelay', DoubleType(), True),
-        StructField('Origin', StringType(), True),
-        StructField('Dest', StringType(), True),
-        StructField('Distance', DoubleType(), True),
-        StructField('TaxiIn', DoubleType(), True),
-        StructField('TaxiOut', DoubleType(), True),
-        StructField('Cancelled', IntegerType(), True),
-        StructField('CancellationCode', StringType(), True),
-        StructField('Diverted', IntegerType(), True),
-        StructField('CarrierDelay', DoubleType(), True),
-        StructField('WeatherDelay', DoubleType(), True),
-        StructField('NASDelay', DoubleType(), True),
-        StructField('SecurityDelay', DoubleType(), True),
-        StructField('LateAircraftDelay', DoubleType(), True)
-    ])
+    schema_sdf = StructType([ StructField('Year', IntegerType(), True),
+                              StructField('Month', IntegerType(), True),
+                              StructField('DayofMonth', IntegerType(), True),
+                              StructField('DayOfWeek', IntegerType(), True),
+                              StructField('DepTime', DoubleType(), True),
+                              StructField('CRSDepTime', DoubleType(), True),
+                              StructField('ArrTime', DoubleType(), True),
+                              StructField('CRSArrTime', DoubleType(), True),
+                              StructField('UniqueCarrier', StringType(), True),
+                              StructField('FlightNum', StringType(), True),
+                              StructField('TailNum', StringType(), True),
+                              StructField('ActualElapsedTime', DoubleType(), True),
+                              StructField('CRSElapsedTime', DoubleType(), True),
+                              StructField('AirTime', DoubleType(), True),
+                              StructField('ArrDelay', DoubleType(), True),
+                              StructField('DepDelay', DoubleType(), True),
+                              StructField('Origin', StringType(), True),
+                              StructField('Dest', StringType(), True),
+                              StructField('Distance', DoubleType(), True),
+                              StructField('TaxiIn', DoubleType(), True),
+                              StructField('TaxiOut', DoubleType(), True),
+                              StructField('Cancelled', IntegerType(), True),
+                              StructField('CancellationCode', StringType(), True),
+                              StructField('Diverted', IntegerType(), True),
+                              StructField('CarrierDelay', DoubleType(), True),
+                              StructField('WeatherDelay', DoubleType(), True),
+                              StructField('NASDelay', DoubleType(), True),
+                              StructField('SecurityDelay', DoubleType(), True),
+                              StructField('LateAircraftDelay', DoubleType(), True) ])
     # s = spark.read.schema("col0 INT, col1 DOUBLE")
 
     # dummy_info_path = "~/running/data/airdelay/dummy_info.pkl"
@@ -180,7 +166,8 @@ elif using_data in ["real_pdf", "real_hdfs"]:
     dummy_columns = ['Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest']
     # Dummy factors to drop as the baseline when fitting the intercept
     if fit_intercept:
-        dummy_factors_baseline = ['Month_1', 'DayOfWeek_1', 'UniqueCarrier_000_OTHERS', 'Origin_000_OTHERS', 'Dest_000_OTHERS']
+        dummy_factors_baseline = ['Month_1', 'DayOfWeek_1', 'UniqueCarrier_000_OTHERS',
+                                  'Origin_000_OTHERS', 'Dest_000_OTHERS']
     else:
         dummy_factors_baseline = []
 
