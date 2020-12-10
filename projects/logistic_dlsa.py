@@ -2,7 +2,7 @@
 
 import findspark
 findspark.init("/usr/lib/spark-current")
-if __name__ == '__main__':  # and __package__ is None:
+if __package__ is None  or name__ == '__main__':
     from os import sys, path
     sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
 
@@ -45,8 +45,6 @@ from dlsa.model_eval import logistic_model_eval_sdf
 from dlsa.sdummies import get_sdummies
 from dlsa.utils import clean_airlinedata, insert_partition_id_pdf
 from dlsa.utils_spark import convert_schema
-
-from sklearn.linear_model import LogisticRegression
 
 # from rpy2.robjects import numpy2ri
 
@@ -130,12 +128,6 @@ elif using_data in ["real_pdf", "real_hdfs"]:
         'Distance'
     ]
 
-    # Dummy factors to drop as the baseline when fitting the intercept
-    if fit_intercept:
-        dummy_factors_baseline = ['Month_1', 'DayOfWeek_1', 'UniqueCarrier_000_OTHERS', 'Origin_000_OTHERS', 'Dest_000_OTHERS']
-    else:
-        dummy_factors_baseline = []
-
     schema_sdf = StructType([
         StructField('Year', IntegerType(), True),
         StructField('Month', IntegerType(), True),
@@ -186,6 +178,12 @@ elif using_data in ["real_pdf", "real_hdfs"]:
 
 
     dummy_columns = ['Month', 'DayOfWeek', 'UniqueCarrier', 'Origin', 'Dest']
+    # Dummy factors to drop as the baseline when fitting the intercept
+    if fit_intercept:
+        dummy_factors_baseline = ['Month_1', 'DayOfWeek_1', 'UniqueCarrier_000_OTHERS', 'Origin_000_OTHERS', 'Dest_000_OTHERS']
+    else:
+        dummy_factors_baseline = []
+
     dummy_keep_top = [1, 1, 0.8, 0.9, 0.9]
 
     n_files = len(file_path)

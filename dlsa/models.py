@@ -47,12 +47,17 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], dummy_
     # x_train = sample_df.drop(['label', 'row_id', 'partition_id'], axis=1)
     # sample_df = samle_df.dropna()
 
+    if fit_intercept:
+        col_intercept_name = ['intercept']
+    else:
+        col_intercept_name = []
+
     # Special step to create a local dummy matrix
     if len(dummy_info) > 0:
         convert_dummies = list(dummy_info['factor_selected'].keys())
 
         # Replace dropped dummies with given key for non-empty
-        sample_df = sample_df.replace({k: v for k, v in dummy_info["factor_dropped"].items() if len(v) > 0}, "OOO_OTHERS")
+        sample_df = sample_df.replace({k: v for k, v in dummy_info["factor_dropped"].items() if len(v) > 0}, "000_OTHERS")
         # Create dummy factors
         X_with_dummies = pd.get_dummies(data=sample_df,
                                         drop_first=False, # do not drop any dummies, will drop later
@@ -66,11 +71,11 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], dummy_
         usecols_x0 = list(set(sample_df.columns.drop(['partition_id', Y_name])) - set(convert_dummies))
         usecols_x = usecols_x0.copy()
         for i in convert_dummies:
-            for j in dummy_info["factor_selected_names"][i][fit_intercept:]:
+            for j in dummy_info["factor_selected_names"][i]:
                 usecols_x.append(j)
-        usecols_x.sort()
-        usecols_full = ['par_id', "coef", "Sig_invMcoef"]
-        usecols_full.extend(usecols_x)
+
+        usecols_x = sorted(list(set(usecols_x)-set(dummy_factors_baseline)))
+        usecols_full = ['par_id', "coef", "Sig_invMcoef"] + col_intercept_name + usecols_x
 
         # raise Exception("usecols_full:\t" + str(len(usecols_full)))
         # raise Exception("usecols_x:\t" + str(usecols_x))
@@ -80,12 +85,12 @@ def logistic_model(sample_df, Y_name, fit_intercept=False, dummy_info=[], dummy_
                           + "missing in this data chunk " + str(x_train.shape)
                           + "Skip modeling this part of data.")
 
-            # return a zero fake matrix.
-            return pd.DataFrame(0,index=np.arange(len(usecols_x)),
+            # return a fake zero matrix.
+            return pd.DataFrame(0,index=np.arange(len(col_intercept_name + usecols_x)),
                                 columns=usecols_full)
 
     else:
-        x_train = sample_df.drop(['partition_id', Y_name], axis=1)
+        x_train = sample_df.drop(['partition_id', Y_name] + dummy_factors_baseline, axis=1)
         usecols_x0 = x_train.columns
 
     # Standardize the data with the global mean and variance
@@ -149,11 +154,17 @@ def logistic_model_eval(sample_df, Y_name,  par, fit_intercept=False, dummy_info
     '''Calculate the log-likelihood for logistic model on the partitioned data set
 
     '''
+    if fit_intercept:
+        col_intercept_name = ['intercept']
+    else:
+        col_intercept_name = []
+
+
     if len(dummy_info) > 0:
         convert_dummies = list(dummy_info['factor_selected'].keys())
 
         # Replace dropped dummies with given key for non-empty
-        sample_df = sample_df.replace({k: v for k, v in dummy_info["factor_dropped"].items() if len(v) > 0}, "OOO_OTHERS")
+        sample_df = sample_df.replace({k: v for k, v in dummy_info["factor_dropped"].items() if len(v) > 0}, "000_OTHERS")
         # Create dummy factors
         X_with_dummies = pd.get_dummies(data=sample_df,
                                         drop_first=False,
@@ -166,11 +177,10 @@ def logistic_model_eval(sample_df, Y_name,  par, fit_intercept=False, dummy_info
         usecols_x0 = list(set(sample_df.columns.drop(['partition_id', Y_name])) - set(convert_dummies))
         usecols_x = usecols_x0.copy()
         for i in convert_dummies:
-            for j in dummy_info["factor_selected_names"][i][fit_intercept:]:
+            for j in dummy_info["factor_selected_names"][i]:
                 usecols_x.append(j)
-        usecols_x.sort()
-        usecols_full = ['par_id', "coef", "Sig_invMcoef"]
-        usecols_full.extend(usecols_x)
+        usecols_x = sorted(list(set(usecols_x)-set(dummy_factors_baseline)))
+        usecols_full = ['par_id', "coef", "Sig_invMcoef"] + col_intercept_name + usecols_x
 
         # raise Exception("usecols_full:\t" + str(len(usecols_full)))
         # raise Exception("usecols_x:\t" + str(usecols_x))
@@ -202,7 +212,6 @@ def logistic_model_eval(sample_df, Y_name,  par, fit_intercept=False, dummy_info
     if fit_intercept:
         intercept = pd.DataFrame(1, index=range(x_train.shape[0]), columns=['intercept'])
         x_train = pd.concat([intercept, x_train], axis=1, sort=False).reset_index(drop=True)
-
 
     # Calculate log likelihood
     loglik = {}
