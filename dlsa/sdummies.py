@@ -3,8 +3,6 @@ from pyspark.sql import functions as F
 from pyspark.ml.feature import StringIndexer, OneHotEncoder, VectorAssembler
 from pyspark.ml import Pipeline
 from pyspark.sql.window import Window
-import sys
-
 
 def get_sdummies(sdf,
                  dummy_columns,
@@ -41,7 +39,7 @@ def get_sdummies(sdf,
                 'count', ascending=False)
             sdf_column_count = sdf_column_count.withColumn(
                 "cumsum",
-                F.sum("count").over(Window.orderBy("count")))
+                F.sum("count").over(Window.orderBy(F.monotonically_increasing_id())))
 
             # Obtain top dummy factors
             sdf_column_top_dummies = sdf_column_count.withColumn(
@@ -68,8 +66,6 @@ def get_sdummies(sdf,
             factor_selected_names[string_col] = [
                 string_col + '_' + str(x) for x in factor_new
             ]
-
-
 
         else:
             keep_list = dummy_info["factor_selected"][string_col]
