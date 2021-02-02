@@ -4,6 +4,7 @@ from pyspark.ml.feature import StringIndexer, OneHotEncoder, VectorAssembler
 from pyspark.ml import Pipeline
 from pyspark.sql.window import Window
 
+
 def get_sdummies(sdf,
                  dummy_columns,
                  keep_top,
@@ -18,7 +19,7 @@ def get_sdummies(sdf,
     :param replace_with: String to use as replacement for the observations that need to be
     grouped.
     :param dropLast: bool. Whether to get k-1 dummies out of k categorical levels by
-    removing the last level. Note that is behave differently with pandas.get_dummies()
+    removing the last level. Note that it behaves differently with pandas.get_dummies()
     where it drops the first level.
 
     return sdf, dummy_info
