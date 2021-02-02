@@ -437,12 +437,12 @@ if 'dlsa_logistic' in fit_algorithms:
     #                 beta_=beta_byOLS,
     #                 sample_size=data_sdf.count(), intercept=False)
 elif 'spark_logistic' in fit_algorithms:
-    data_sdf_i2, dummy_info = get_sdummies(sdf=data_sdf_i,
-                                           keep_top=dummy_keep_top,
-                                           replace_with="000_OTHERS",
-                                           dummy_columns=dummy_columns,
-                                           dummy_info=dummy_info,
-                                           dropLast=fit_intercept)
+    data_sdf_i, dummy_info = get_sdummies(sdf=data_sdf_i,
+                                          keep_top=dummy_keep_top,
+                                          replace_with="000_OTHERS",
+                                          dummy_columns=dummy_columns,
+                                          dummy_info=dummy_info,
+                                          dropLast=fit_intercept)
 
     if dummy_info_path["save"] is True:
         pickle.dump(dummy_info, open(os.path.expanduser(dummy_info_path["path"]), 'wb'))
