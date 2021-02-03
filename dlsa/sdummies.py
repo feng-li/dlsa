@@ -4,6 +4,7 @@ from pyspark.ml.feature import StringIndexer, OneHotEncoder, VectorAssembler
 from pyspark.ml import Pipeline
 from pyspark.sql.window import Window
 
+
 def get_sdummies(sdf,
                  dummy_columns,
                  keep_top,
@@ -68,7 +69,8 @@ def get_sdummies(sdf,
 
             if len(factor_dropped[string_col]) != 0:
                 factor_count = factor_count.append(
-                    {string_col: replace_with, 'count': None, 'perc': keep_top[column_i]},
+                    {string_col: replace_with, 'count': None,
+                     'perc': 1 - factor_count['perc'].sum()},
                     ignore_index = True)
             # Descending sorting by percentage
             factor_count = factor_count.sort_values(by='perc', ascending=False)
