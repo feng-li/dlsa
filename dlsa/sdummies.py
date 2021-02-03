@@ -4,13 +4,12 @@ from pyspark.ml.feature import StringIndexer, OneHotEncoder, VectorAssembler
 from pyspark.ml import Pipeline
 from pyspark.sql.window import Window
 
-
 def get_sdummies(sdf,
                  dummy_columns,
                  keep_top,
                  replace_with='000_OTHERS',
                  dummy_info=[],
-                 dropLast=True):
+                 dropLast=False):
     """Index string columns and group all observations that occur in less then a keep_top% of the rows in sdf per column.
 
     :param sdf: A pyspark.sql.dataframe.DataFrame
@@ -30,7 +29,7 @@ def get_sdummies(sdf,
     factor_set = {}  # The full dummy sets
     factor_selected = {}  # Used dummy sets
     factor_dropped = {}  # Dropped dummy sets
-    factor_selected_names = {}  # Final revised factors
+    factor_selected_names = {}  # Final revised factors with ordered by ONEHOT encoding
 
     for string_col in dummy_columns:
 
@@ -42,10 +41,14 @@ def get_sdummies(sdf,
                 "cumsum",
                 F.sum("count").over(Window.orderBy(F.monotonically_increasing_id())))
 
-            # Obtain top dummy factors
+            # Obtain top dummy factors: the cumulative percentage of kept dummy factors
+            # should reach e.g. top %90 and group the remaining dummy factors 10% as
+            # `others`. Also always keep dummy factors that has 10% ratio of the total.
             sdf_column_top_dummies = sdf_column_count.withColumn(
                 "cumperc", sdf_column_count['cumsum'] /
-                total).filter(col('cumperc') <= keep_top[column_i])
+                total).filter((col('cumperc') <= keep_top[column_i]) |
+                              (col('count') >= 0.1 * total))
+
             keep_list = sdf_column_top_dummies.select(string_col).rdd.flatMap(
                 lambda x: x).collect()
 
@@ -55,18 +58,21 @@ def get_sdummies(sdf,
             factor_selected[string_col] = keep_list
             factor_dropped[string_col] = list(
                 set(factor_set[string_col]) - set(keep_list))
-            # factor_selected_names[string_col] = [string_col + '_' + str(x) for x in factor_new ]
 
-            # Replace dropped dummies with indicators like `others`
-            if len(factor_dropped[string_col]) == 0:
-                factor_new = []
-            else:
-                factor_new = [replace_with]
-            factor_new.extend(factor_selected[string_col])
+            # Get correct encoding order of dummies. NOTE that in Spark, ONEHOT encoding
+            # sort dummies according to the weights, the factor with highest wight will be
+            # labeled 0, then 1, 2, ... TODO: better solution with IndexEncoder
+            factor_old_len = len(factor_selected[string_col])
+            factor_count = sdf_column_count.limit(factor_old_len).select([string_col, 'count']).toPandas()
+            factor_count['perc'] = factor_count['count'] / total
 
-            factor_selected_names[string_col] = [
-                string_col + '_' + str(x) for x in factor_new
-            ]
+            if len(factor_dropped[string_col]) != 0:
+                factor_count = factor_count.append(
+                    {string_col: replace_with, 'count': None, 'perc': keep_top[column_i]},
+                    ignore_index = True)
+            # Descending sorting by percentage
+            factor_count = factor_count.sort_values(by='perc', ascending=False)
+            factor_selected_names[string_col] = factor_count[string_col].tolist()
 
         else:
             keep_list = dummy_info["factor_selected"][string_col]
@@ -76,6 +82,7 @@ def get_sdummies(sdf,
             string_col,
             when((col(string_col).isin(keep_list)),
                  col(string_col)).otherwise(replace_with))
+
         column_i += 1
 
     # The index of string vlaues multiple columns
