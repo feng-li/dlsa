@@ -77,6 +77,8 @@ def get_sdummies(sdf,
             # Descending sorting by percentage
             factor_count = factor_count.sort_values(by='perc', ascending=False)
             factor_selected_names[string_col] = factor_count[string_col].tolist()
+            if dropLast:
+                factor_selected_names[string_col] = factor_selected_names[string_col][:-1]
 
         else:
             keep_list = dummy_info["factor_selected"][string_col]
