@@ -1,5 +1,6 @@
 from pyspark.sql.functions import col, when
 from pyspark.sql import functions as F
+import pyspark.sql.types as T
 from pyspark.ml.feature import StringIndexer, OneHotEncoder, VectorAssembler
 from pyspark.ml import Pipeline
 from pyspark.sql.window import Window
@@ -10,7 +11,8 @@ def get_sdummies(sdf,
                  keep_top,
                  replace_with='000_OTHERS',
                  dummy_info=[],
-                 dropLast=False):
+                 dropLast=False,
+                 sparse=False):
     """Index string columns and group all observations that occur in less then a keep_top% of the rows in sdf per column.
 
     :param sdf: A pyspark.sql.dataframe.DataFrame
@@ -110,6 +112,11 @@ def get_sdummies(sdf,
     # pipeline = Pipeline(stages=[assembler])
     onehot_model = pipeline.fit(sdf)
     sdf = onehot_model.transform(sdf)
+
+    # Convert Spark SparseVector (VectorUDT type not supported by Pandas UDF) to dense list
+    if sparse is False:
+        to_array = F.udf(lambda v: v.toArray().tolist(), T.ArrayType(T.FloatType()))
+        sdf = sdf.withColumn('features_ONEHOT', to_array('features_ONEHOT'))
 
     # Drop intermediate columns
     drop_columns = [x + "_IDX" for x in dummy_columns]
