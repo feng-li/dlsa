@@ -1,13 +1,14 @@
 import os
 from setuptools import setup
 
+
 def read(file):
     return open(os.path.join(os.path.dirname(__file__), file)).read()
+
 
 setup(name='dlsa',
       use_scm_version=True,
       setup_requires=['setuptools_scm'],
-      version='0.1.1',
       description='Distributed Least Squares Approximations',
       keywords='spark, spark-ml, pyspark, mapreduce',
       long_description=read('README.md'),
@@ -19,6 +20,7 @@ setup(name='dlsa',
       packages=['dlsa'],
       install_requires=[
           'pyspark >= 2.3.1',
+          'pyarrow >= 0.15.0',
           'sklearn >= 0.21.2',
           'numpy   >= 1.16.3',
           'pandas  >= 0.23.4',
