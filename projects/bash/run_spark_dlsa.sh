@@ -31,7 +31,7 @@ cd -;
 # for i in 1 {4..100..4} # 1, 5, 10, 15, ... , 100
 
 # for i in {256..4..-4}
-tic0=`date +"%Y-%m-%d-%T"`
+tic0=`date +%Y%m%d-%H.%M.%S`
 for executors in 24
 do
     tic=`date +%s`

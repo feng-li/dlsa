@@ -1,10 +1,12 @@
 #! /usr/bin/env python3.7
 
-import findspark
-findspark.init("/usr/lib/spark-current")
-if __package__ is None  or name__ == '__main__':
-    from os import sys, path
-    sys.path.append(path.dirname(path.dirname(path.abspath(__file__))))
+# Only use for interactive mode
+import sys, pathlib
+if hasattr(sys, 'ps1'):
+    import os, findspark
+    findspark.init("/usr/lib/spark-current")
+    libdir = pathlib.Path(os.getcwd()).parent
+    sys.path.append(libdir)
 
 import pyspark
 # PyArrow compatibility https://spark.apache.org/docs/latest/sql-pyspark-pandas-with-arrow.html#compatibility-setting-for-pyarrow--0150-and-spark-23x-24x
@@ -73,7 +75,7 @@ from dlsa.utils_spark import convert_schema
 using_data = "real_hdfs"  # ["simulated_pdf", "real_pdf", "real_hdfs"
 partition_method = "systematic"
 model_saved_file_name = '~/running/logistic_dlsa_model_' + time.strftime(
-    "%Y-%m-%d-%H:%M:%S", time.localtime()) + '.pkl'
+    "%Y%m%d-%H.%M.%S", time.localtime()) + '.pkl'
 
 # If save data descriptive statistics
 data_info_path = {
