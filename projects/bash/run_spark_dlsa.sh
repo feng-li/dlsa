@@ -42,7 +42,7 @@ do
                   --driver-memory 50g    \
                   --executor-cores ${EC}    \
                   --conf spark.rpc.message.maxSize=2000 \
-                  $DIR/../${MODEL_FILE}.py  \
+                  $DIR/../${MODEL_FILE}.py  "$@" \
                   > ${OUTPATH}${MODEL_DESCRIPTION}_${MODEL_FILE}.NE${executors}.EC${EC}_${tic0}.out 2> ${OUTPATH}${MODEL_DESCRIPTION}_${MODEL_FILE}.NE${executors}.EC${EC}_${tic0}.log
     toc=`date +%s`
     runtime=$((toc-tic))
