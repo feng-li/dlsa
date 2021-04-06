@@ -10,6 +10,7 @@ findspark.init("/usr/lib/spark-current")
 import pyspark
 spark = pyspark.sql.SparkSession.builder.appName(
     "Spark Native Logistic Regression App").getOrCreate()
+spark.sparkContext.setLogLevel("WARN") # "DEBUG", "ERROR"
 
 from pyspark.ml.classification import LogisticRegression
 from pyspark.ml.linalg import Vectors

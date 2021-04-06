@@ -15,6 +15,7 @@ import pyspark
 conf = pyspark.SparkConf().setAppName("Spark DLSA App").setExecutorEnv(
     'ARROW_PRE_0_15_IPC_FORMAT', '1')
 spark = pyspark.sql.SparkSession.builder.config(conf=conf).getOrCreate()
+spark.sparkContext.setLogLevel("WARN") # "DEBUG", "ERROR"
 
 # Enable Arrow-based columnar data transfers
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
