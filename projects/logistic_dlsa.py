@@ -19,8 +19,11 @@ spark = pyspark.sql.SparkSession.builder.config(conf=conf).getOrCreate()
 # Enable Arrow-based columnar data transfers
 spark.conf.set("spark.sql.execution.arrow.enabled", "true")
 spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "true")
+# https://docs.azuredatabricks.net/spark/latest/spark-sql/udf-python-pandas.html#setting-arrow-batch-size
+# spark.conf.set("spark.sql.execution.arrow.maxRecordsPerBatch", 10000) # default
 
-spark.sparkContext.addPyFile("dlsa.zip")
+# spark.conf.set("spark.sql.shuffle.partitions", 10)
+# print(spark.conf.get("spark.sql.shuffle.partitions"))
 
 # System functions
 import os, sys, time
@@ -43,6 +46,7 @@ from pyspark.ml.linalg import Vectors
 from pyspark.ml.feature import VectorAssembler, StandardScaler
 
 # dlsa functions
+spark.sparkContext.addPyFile("dlsa.zip")
 from dlsa.dlsa import dlsa, dlsa_mapred  #, dlsa_r
 from dlsa.models import simulate_logistic, logistic_model
 from dlsa.model_eval import logistic_model_eval_sdf
@@ -51,22 +55,6 @@ from dlsa.utils import clean_airlinedata, insert_partition_id_pdf
 from dlsa.utils_spark import convert_schema
 
 # from rpy2.robjects import numpy2ri
-
-# FIXME: PATH BUG
-# spark.sparkContext.addPyFile("/home/lifeng/code/dlsa/models.py")
-# spark.sparkContext.addPyFile("/home/lifeng/code/dlsa/utils.py")
-
-# BASH compatible
-# spark.sparkContext.addPyFile(os.path.dirname(os.path.abspath(__file__)) + "/models.py")
-
-# Python compatible
-# spark.sparkContext.addPyFile(os.path.dirname(os.path.abspath(__file__)) + "/dlsa/models.py")
-
-# https://docs.azuredatabricks.net/spark/latest/spark-sql/udf-python-pandas.html#setting-arrow-batch-size
-# spark.conf.set("spark.sql.execution.arrow.maxRecordsPerBatch", 10000) # default
-
-# spark.conf.set("spark.sql.shuffle.partitions", 10)
-# print(spark.conf.get("spark.sql.shuffle.partitions"))
 
 ##----------------------------------------------------------------------------------------
 ## SETTINGS
@@ -149,9 +137,7 @@ elif using_data in ["real_pdf", "real_hdfs"]:
                               StructField('NASDelay', DoubleType(), True),
                               StructField('SecurityDelay', DoubleType(), True),
                               StructField('LateAircraftDelay', DoubleType(), True) ])
-    # s = spark.read.schema("col0 INT, col1 DOUBLE")
 
-    # dummy_info_path = "~/running/data/airdelay/dummy_info.pkl"
     dummy_info_path = {
         # 'save': True,  # If False, load it from the path
         'save': False,  # If False, load it from the path
@@ -257,10 +243,6 @@ for file_no_i in range(n_files):
             "partition_id",
             monotonically_increasing_id() % partition_num_sub[file_no_i])
 
-        ## Create dummy variables We could do it either directly with
-        ## https://stackoverflow.com/questions/35879372/pyspark-matrix-with-dummy-variables
-        ## or we do it within grouped dlsa (default)
-
 ##----------------------------------------------------------------------------------------
 ## MODEL FITTING ON PARTITIONED DATA
 ##----------------------------------------------------------------------------------------
@@ -270,7 +252,6 @@ for file_no_i in range(n_files):
         nsub = ceil(sample_size_sub[file_no_i] / max_sample_size_per_sdf)
 
         for isub in range(nsub):
-
             # Convert Pandas DataFrame to Spark DataFrame
             idx_curr_sub = [
                 round(sample_size_sub[file_no_i] / nsub * isub),
