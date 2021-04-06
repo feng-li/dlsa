@@ -1,7 +1,9 @@
 #! /usr/bin/env python3.7
 
 # Only use for interactive mode
-import sys, pathlib
+import sys, pathlib, time
+tic_init = time.perf_counter()
+
 if hasattr(sys, 'ps1'):
     import os, findspark
     findspark.init("/usr/lib/spark-current")
@@ -183,15 +185,16 @@ elif using_data in ["real_pdf", "real_hdfs"]:
     Y_name = "ArrDelay"
     sample_size_sub = []
     memsize_sub = []
+    tictoc = {} # time stamper for each tasks
 
 # Read or load data chunks into pandas
 #-----------------------------------------------------------------------------------------
-time_2sdf_sub = []
-time_repartition_sub = []
+tictoc['2sdf_sub'] = []
+tictoc['repartition_sub'] = []
 
 loop_counter = 0
 for file_no_i in range(n_files):
-    tic_2sdf = time.perf_counter()
+    tictoc['2sdf'] = [time.perf_counter()]
 
     if using_data == "simulated_pdf":
         if file_no_i == 0:
@@ -314,10 +317,10 @@ for file_no_i in range(n_files):
 
     # Independent fit chunked data with UDF.
     if 'dlsa_logistic' in fit_algorithms:
-        tic_repartition = time.perf_counter()
+        tictoc['repartition'] = [time.perf_counter()]
         data_sdf_i = data_sdf_i.repartition(partition_num_sub[file_no_i],
                                             "partition_id")
-        time_repartition_sub.append(time.perf_counter() - tic_repartition)
+        tictoc['repartition_sub'].append(time.perf_counter() - tictoc['repartition'])
 
         ## Register a user defined function via the Pandas UDF
         schema_beta = StructType([
@@ -337,8 +340,7 @@ for file_no_i in range(n_files):
 
         # pdb.set_trace()
         # partition the data and run the UDF
-        model_mapped_sdf_i = data_sdf_i.groupby("partition_id").apply(
-            logistic_model_udf)
+        model_mapped_sdf_i = data_sdf_i.groupby("partition_id").apply(logistic_model_udf)
 
         # Union all sequential mapped results.
         if file_no_i == 0 and isub == 0:
@@ -358,21 +360,22 @@ if 'dlsa_logistic' in fit_algorithms:
     sample_size = sum(sample_size_sub)
 
     # Obtain Sig_inv and beta
-    tic_mapred = time.perf_counter()
+    tictoc['mapred'] = [time.perf_counter()]
     Sig_inv_beta = dlsa_mapred(model_mapped_sdf)
-    time_mapred = time.perf_counter() - tic_mapred
+    tictoc['mapred'].append(time.perf_counter())
 
-    tic_dlsa = time.perf_counter()
+    tictoc['dlsa'] = time.perf_counter()
     out_dlsa = dlsa(Sig_inv_=Sig_inv_beta.iloc[:, 2:],
                     beta_=Sig_inv_beta["beta_byOLS"],
                     sample_size=sample_size,
                     fit_intercept=fit_intercept)
+    tictoc['dlsa'].append(time.perf_counter())
 
-    time_dlsa = time.perf_counter() - tic_dlsa
+    tictoc['model_fit'] = [tic_init, time.perf_counter()] # total computational time
     ##----------------------------------------------------------------------------------------
     ## Model Evaluation
     ##----------------------------------------------------------------------------------------
-    tic_model_eval = time.perf_counter()
+    tictoc['model_eval'] = [time.perf_counter()]
 
     out_par = out_dlsa
     out_par["beta_byOLS"] = Sig_inv_beta["beta_byOLS"]
@@ -386,15 +389,33 @@ if 'dlsa_logistic' in fit_algorithms:
                                              dummy_factors_baseline=dummy_factors_baseline,
                                              data_info=data_info)
 
-    time_model_eval = time.perf_counter() - tic_model_eval
+    # Computational time for model evaluation
+    tictoc['model_eval'].append(time.perf_counter())
     ##----------------------------------------------------------------------------------------
     ## PRINT OUTPUT
     ##----------------------------------------------------------------------------------------
     memsize_total = sum(memsize_sub)
     partition_num = sum(partition_num_sub)
+
     time_repartition = sum(time_repartition_sub)
+
     # time_2sdf = sum(time_2sdf_sub)
     # sample_size_per_partition = sample_size / partition_num
+
+    # COMPUTATIONAL AND COMMUNICATION TIME. Note that the inevitable overhead for
+    # initializing the spark task is also included in the computational time. It is
+    # difficult to monitor the exact communication time per code interaction in Spark due
+    # to its lazy evaluation technique used. The overall communication time is estimated
+    # from the computational time by substituting the computational time used on the
+    # master and the average computational time used at each worker.
+
+    # TODO: Use the Spark REST API
+    # http://spark.apache.org/docs/latest/monitoring.html#rest-api
+    time_mapred = tictoc['mapred'][1] - tictoc['mapred'][0]  # computational time by dlsa part 1
+    time_dlsa = tictoc['dlsa'][1] - tictoc['dlsa'][0]  # computational time by dlsa part 2
+    time_model_fit = tictoc['model_fit'][1] - tictoc['model_fit'][0]
+    time_model_eval = tictoc['model_eval'][1] - tictoc['model_eval'][0]
+    time_comm = time_model_fit - time_dlsa - time_mapred
 
     out_time = pd.DataFrame(
         {
@@ -403,10 +424,11 @@ if 'dlsa_logistic' in fit_algorithms:
             "n_par": len(schema_beta) - 3,
             "partition_num": partition_num,
             "memsize_total": memsize_total,
-            # "time_2sdf": time_2sdf,
+            "tictoc": tictoc,
             "time_repartition": time_repartition,
             "time_mapred": time_mapred,
             "time_dlsa": time_dlsa,
+            "time_model_fit": time_model_fit,
             "time_model_eval": time_model_eval
         },
         index=[0])
