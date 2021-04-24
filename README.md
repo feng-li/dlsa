@@ -47,4 +47,4 @@ projects/bash/spark_dlsa_run.sh
 
 ## References
 
-- [Zhu, X.](https://xueningzhu.github.io/), [Li, F.](http://feng.li/), & [Wang, H.](http://hansheng.gsm.pku.edu.cn/), (2019) Least Squares Approximation for a Distributed System. [_Working Paper_](https://arxiv.org/abs/1908.04904).
+- [Xuening Zhu](https://xueningzhu.github.io/), [Feng Li](https://feng.li/), & [Hansheng Wang](http://hansheng.gsm.pku.edu.cn/), (2019) Least Squares Approximation for a Distributed System. Journal of Computational and Graphical Statistics. [(in press)](https://arxiv.org/abs/1908.04904).
