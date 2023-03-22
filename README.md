@@ -45,6 +45,8 @@ projects/bash/spark_dlsa_run.sh
  projects/logistic_dlsa.py
  ```
 
+## All Rights Reserved by feng li
+
 ## References
 
 - [Xuening Zhu](https://xueningzhu.github.io/), [Feng Li](https://feng.li/), & [Hansheng Wang](http://hansheng.gsm.pku.edu.cn/), (2021) [Least Squares Approximation for a Distributed System](https://doi.org/10.1080/10618600.2021.1923517). Journal of Computational and Graphical Statistics. [(in press)](https://arxiv.org/abs/1908.04904).
