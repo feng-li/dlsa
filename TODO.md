@@ -11,7 +11,7 @@ spark.conf.set("spark.sql.execution.arrow.enabled", "true")
 from pyspark.sql.functions import pandas_udf, PandasUDFType
 
 df = spark.createDataFrame(
-    [(1, 1.0), (1, 2.0), (2, 3.0), (2, 5.0), (2, 10.0)],
+    [(1, 1.0), (1, 2.0), (2, 3.0), (2, 5.0),(2, 7.0), (2, 10.0)],
     ("id", "v"))
 
 @pandas_udf("id long, v double", PandasUDFType.GROUPED_MAP)
