@@ -1,6 +1,6 @@
 
 # Known issues
-
+- No tested
 - Problem running with Spark 2.4.1 on some platforms: `Pandas generates null values`. See this example
 
 ``` py
