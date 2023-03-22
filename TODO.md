@@ -27,3 +27,5 @@ df.groupby("id").apply(subtract_mean).show()
   with pandas udf. 
   
    - Update Python to 3.7 resolves this problem.
+
+Revised by Li Qi
