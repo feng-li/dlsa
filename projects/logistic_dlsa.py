@@ -1,5 +1,5 @@
 #! /usr/bin/env python3.7
-
+# It is used for logistic regression
 # Only use for interactive mode
 import sys, pathlib, time
 tic_init = time.perf_counter()
