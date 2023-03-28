@@ -4,16 +4,9 @@
 import sys, pathlib, time
 tic_init = time.perf_counter()
 
-if hasattr(sys, 'ps1'):
-    import os, findspark
-    findspark.init("/usr/lib/spark-current")
-    libdir = pathlib.Path(os.getcwd()).parent
-    sys.path.append(libdir)
-
 import pyspark
 # PyArrow compatibility https://spark.apache.org/docs/latest/sql-pyspark-pandas-with-arrow.html#compatibility-setting-for-pyarrow--0150-and-spark-23x-24x
-conf = pyspark.SparkConf().setAppName("Spark DLSA App").setExecutorEnv(
-    'ARROW_PRE_0_15_IPC_FORMAT', '1')
+conf = pyspark.SparkConf().setAppName("Spark DLSA App")
 spark = pyspark.sql.SparkSession.builder.config(conf=conf).getOrCreate()
 spark.sparkContext.setLogLevel("WARN") # "DEBUG", "ERROR"
 
@@ -70,8 +63,8 @@ model_saved_file_name = '~/running/logistic_dlsa_model_' + time.strftime(
 
 # If save data descriptive statistics
 data_info_path = {
-    'save': True,
-    'path': "~/running/data/airdelay/data_info.csv"
+    'save': False,
+    'path': "~/students/2020312200mengjiayi/dlsa/data_info_2020312200mjy.csv"  # change path
 }
 
 # Model settings
@@ -142,7 +135,7 @@ elif using_data in ["real_pdf", "real_hdfs"]:
     dummy_info_path = {
         # 'save': True,  # If False, load it from the path
         'save': False,  # If False, load it from the path
-        'path': "~/running/data/airdelay/dummy_info_small.pkl"
+        'path': "~/students/2020312200mengjiayi/dlsa/dummy_info_small_2020312200mjy.pkl"  # change path
         # 'path': "~/running/data/airdelay/dummy_info.pkl"
     }
 
@@ -167,7 +160,7 @@ elif using_data in ["real_pdf", "real_hdfs"]:
     n_files = len(file_path)
     partition_num_sub = []
     max_sample_size_per_sdf = 100000  # No effect with `real_hdfs` data
-    sample_size_per_partition = 1000000
+    sample_size_per_partition = 100000  # change from 1000000
 
     Y_name = "ArrDelay"
     sample_size_sub = []
@@ -233,7 +226,7 @@ for file_no_i in range(n_files):
         # https://spark.apache.org/docs/latest/ml-features.html#binarizer
         data_sdf_i = data_sdf_i.withColumn(
             Y_name,
-            F.when(data_sdf_i[Y_name] > 0, 1).otherwise(0))
+            F.when(data_sdf_i[Y_name] > 15, 1).otherwise(0))
 
         sample_size_sub.append(data_sdf_i.count())
         partition_num_sub.append(
