@@ -12,8 +12,7 @@ if hasattr(sys, 'ps1'):
 
 import pyspark
 # PyArrow compatibility https://spark.apache.org/docs/latest/sql-pyspark-pandas-with-arrow.html#compatibility-setting-for-pyarrow--0150-and-spark-23x-24x
-conf = pyspark.SparkConf().setAppName("Spark DLSA App").setExecutorEnv(
-    'ARROW_PRE_0_15_IPC_FORMAT', '1')
+conf = pyspark.SparkConf().setAppName("Spark DLSA App")
 spark = pyspark.sql.SparkSession.builder.config(conf=conf).getOrCreate()
 spark.sparkContext.setLogLevel("WARN") # "DEBUG", "ERROR"
 
@@ -70,8 +69,8 @@ model_saved_file_name = '~/running/logistic_dlsa_model_' + time.strftime(
 
 # If save data descriptive statistics
 data_info_path = {
-    'save': True,
-    'path': "~/running/data/airdelay/data_info.csv"
+    'save': False,#原本为True
+    'path': "~/running/data/airdelay/data_info_hjy.csv"#改成自己的路径
 }
 
 # Model settings
@@ -104,7 +103,7 @@ elif using_data in ["real_pdf", "real_hdfs"]:
     # file_path = ['/running/data_raw/xa' + str(letter) + '.csv' for letter in string.ascii_lowercase[0:1]] # HDFS file
 
     # file_path = ['/data/airdelay_full.csv']  # HDFS file
-    file_path = ['/data/airdelay_small.csv']  # HDFS file
+    file_path = ['/data/airdelay_small.csv']  # HDFS file  #改路径
 
     usecols_x = [ 'Year', 'Month', 'DayofMonth', 'DayOfWeek', 'DepTime', 'CRSDepTime',
                   'CRSArrTime', 'UniqueCarrier', 'ActualElapsedTime', 'Origin', 'Dest', 'Distance' ]
@@ -142,7 +141,7 @@ elif using_data in ["real_pdf", "real_hdfs"]:
     dummy_info_path = {
         # 'save': True,  # If False, load it from the path
         'save': False,  # If False, load it from the path
-        'path': "~/running/data/airdelay/dummy_info_small.pkl"
+        'path': "~/running/data/airdelay/dummy_info_small.pkl" #改路径
         # 'path': "~/running/data/airdelay/dummy_info.pkl"
     }
 
@@ -233,7 +232,7 @@ for file_no_i in range(n_files):
         # https://spark.apache.org/docs/latest/ml-features.html#binarizer
         data_sdf_i = data_sdf_i.withColumn(
             Y_name,
-            F.when(data_sdf_i[Y_name] > 0, 1).otherwise(0))
+            F.when(data_sdf_i[Y_name] > 15, 1).otherwise(0))
 
         sample_size_sub.append(data_sdf_i.count())
         partition_num_sub.append(
