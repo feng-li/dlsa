@@ -7,15 +7,15 @@ import zipfile, pathlib
 import numpy as np
 import pandas as pd
 
-import rpy2.robjects as robjects
-from rpy2.robjects import numpy2ri
-import rpy2
+# import rpy2.robjects as robjects
+# from rpy2.robjects import numpy2ri
+# import rpy2
 
 from pyspark.sql.types import *
 from pyspark.sql.functions import pandas_udf, PandasUDFType
 
 # import pdb
-# from dlsa.lsa import lars_lsa
+from dlsa.lsa import lars_lsa
 
 
 def dlsa_mapred(model_mapped_sdf):
@@ -61,10 +61,10 @@ def dlsa_mapred(model_mapped_sdf):
     return out
 
 
-dlsa_rcode = zipfile.ZipFile(pathlib.Path(__file__).parents[1]).open("dlsa/R/dlsa_alasso_func.R").read().decode("utf-8")
-robjects.r.source(exprs=rpy2.rinterface.parse(dlsa_rcode), verbose=False)
-lars_lsa = robjects.r['lars.lsa']
-dlsa_r = robjects.r['dlsa']
+# dlsa_rcode = zipfile.ZipFile(pathlib.Path(__file__).parents[1]).open("dlsa/R/dlsa_alasso_func.R").read().decode("utf-8")
+# robjects.r.source(exprs=rpy2.rinterface.parse(dlsa_rcode), verbose=False)
+# lars_lsa = robjects.r['lars.lsa']
+# dlsa_r = robjects.r['dlsa']
 
 # Python version
 def dlsa(Sig_inv_, beta_, sample_size, fit_intercept=False):
@@ -73,23 +73,30 @@ def dlsa(Sig_inv_, beta_, sample_size, fit_intercept=False):
 
     '''
 
-    numpy2ri.activate()
+    # numpy2ri.activate()
+    # dfitted = lars_lsa(np.asarray(Sig_inv_),
+    #                    np.asarray(beta_),
+    #                    intercept=fit_intercept,
+    #                    n=sample_size)
+    # numpy2ri.deactivate()
+
     dfitted = lars_lsa(np.asarray(Sig_inv_),
                        np.asarray(beta_),
                        intercept=fit_intercept,
                        n=sample_size)
-    numpy2ri.deactivate()
-
-    AIC = robjects.FloatVector(dfitted.rx2("AIC"))
+    AIC = dfitted["AIC"]
+    BIC = dfitted["BIC"]
+    beta = dfitted["beta"]
     AIC_minIdx = np.argmin(AIC)
-    BIC = robjects.FloatVector(dfitted.rx2("BIC"))
     BIC_minIdx = np.argmin(BIC)
-    beta = np.array(robjects.FloatVector(dfitted.rx2("beta")))
 
+    print(dfitted)
     if fit_intercept:
         beta_byOLS = beta_.to_numpy()
-        beta0 = np.array(robjects.FloatVector(
-            dfitted.rx2("beta0"))) + beta_byOLS[0]
+
+        # beta0 = np.array(robjects.FloatVector(dfitted.rx2("beta0"))) + beta_byOLS[0]
+        beta0 = dfitted["beta0"]
+
 
         beta_byAIC = np.hstack([beta0[AIC_minIdx], beta[AIC_minIdx, :]])
         beta_byBIC = np.hstack([beta0[BIC_minIdx], beta[BIC_minIdx, :]])

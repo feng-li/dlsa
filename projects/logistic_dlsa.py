@@ -18,8 +18,8 @@ spark = pyspark.sql.SparkSession.builder.config(conf=conf).getOrCreate()
 spark.sparkContext.setLogLevel("WARN") # "DEBUG", "ERROR"
 
 # Enable Arrow-based columnar data transfers
-spark.conf.set("spark.sql.execution.arrow.enabled", "true")
-spark.conf.set("spark.sql.execution.arrow.fallback.enabled", "true")
+spark.conf.set("spark.sql.execution.arrow.pyspark.enabled", "true")
+spark.conf.set("spark.sql.execution.arrow.pyspark.fallback.enabled", "true")
 # https://docs.azuredatabricks.net/spark/latest/spark-sql/udf-python-pandas.html#setting-arrow-batch-size
 # spark.conf.set("spark.sql.execution.arrow.maxRecordsPerBatch", 10000) # default
 
@@ -104,7 +104,7 @@ elif using_data in ["real_pdf", "real_hdfs"]:
     # file_path = ['/running/data_raw/xa' + str(letter) + '.csv' for letter in string.ascii_lowercase[0:1]] # HDFS file
 
     # file_path = ['/data/airdelay_full.csv']  # HDFS file
-    file_path = ['/data/airdelay_small.csv']  # HDFS file
+    file_path = ['file:///home1/fli/data/airdelay_small.csv']  # HDFS file
 
     usecols_x = [ 'Year', 'Month', 'DayofMonth', 'DayOfWeek', 'DepTime', 'CRSDepTime',
                   'CRSArrTime', 'UniqueCarrier', 'ActualElapsedTime', 'Origin', 'Dest', 'Distance' ]
@@ -176,160 +176,151 @@ elif using_data in ["real_pdf", "real_hdfs"]:
 
 # Read or load data chunks into pandas
 #-----------------------------------------------------------------------------------------
-tictoc['2sdf_sub'] = []
-tictoc['repartition_sub'] = []
 
-loop_counter = 0
-for file_no_i in range(n_files):
-    tictoc['2sdf'] = [time.perf_counter()]
+if using_data == "simulated_pdf":
+    # To test performance, we only simulate one subset of data and replicated it.
+    data_pdf_i = simulate_logistic(sample_size_sub[0], p,
+                                   partition_method, partition_num_sub)
+    memsize_sub0 = sys.getsizeof(data_pdf_i)
+    sample_size_sub.append(sample_size_sub[0])
+    memsize_sub.append(memsize_sub0)
+    partition_num_sub.append(partition_num_sub[0])
 
-    if using_data == "simulated_pdf":
-        if file_no_i == 0:
-            # To test performance, we only simulate one subset of data and replicated it.
-            data_pdf_i = simulate_logistic(sample_size_sub[0], p,
-                                           partition_method, partition_num_sub)
-            memsize_sub0 = sys.getsizeof(data_pdf_i)
-        else:
-            sample_size_sub.append(sample_size_sub[0])
-            memsize_sub.append(memsize_sub0)
-            partition_num_sub.append(partition_num_sub[0])
+elif using_data == "real_pdf":  # Read real data
+    data_pdf_i0 = clean_airlinedata(os.path.expanduser(file_path[file_no_i]),
+                                    fit_intercept=fit_intercept)
 
-    elif using_data == "real_pdf":  # Read real data
-        data_pdf_i0 = clean_airlinedata(os.path.expanduser(
-            file_path[file_no_i]),
-                                        fit_intercept=fit_intercept)
+    # Create an full-column empty DataFrame and resize current subset
+    edf = pd.DataFrame(
+        columns=list(set(dummy_column_names) - set(data_pdf_i0.columns)))
+    data_pdf_i = data_pdf_i0.append(edf, sort=True)
+    del data_pdf_i0
 
-        # Create an full-column empty DataFrame and resize current subset
-        edf = pd.DataFrame(
-            columns=list(set(dummy_column_names) - set(data_pdf_i0.columns)))
-        data_pdf_i = data_pdf_i0.append(edf, sort=True)
-        del data_pdf_i0
+    # Replace append-generated NaN with 0
+    data_pdf_i.fillna(0, inplace=True)
 
-        # Replace append-generated NaN with 0
-        data_pdf_i.fillna(0, inplace=True)
+    partition_num_sub.append(
+        ceil(data_pdf_i.shape[0] / sample_size_per_partition))
+    data_pdf_i = insert_partition_id_pdf(data_pdf_i,
+                                         partition_num_sub[file_no_i],
+                                         partition_method)
 
-        partition_num_sub.append(
-            ceil(data_pdf_i.shape[0] / sample_size_per_partition))
-        data_pdf_i = insert_partition_id_pdf(data_pdf_i,
-                                             partition_num_sub[file_no_i],
-                                             partition_method)
+    sample_size_sub.append(data_pdf_i.shape[0])
+    memsize_sub.append(sys.getsizeof(data_pdf_i))
 
-        sample_size_sub.append(data_pdf_i.shape[0])
-        memsize_sub.append(sys.getsizeof(data_pdf_i))
+## Using HDFS data
+## ------------------------------
+elif using_data == "real_hdfs":
+    isub = 0  # fixed, never changed
+    file_no_i = 0
 
-    ## Using HDFS data
-    ## ------------------------------
-    elif using_data == "real_hdfs":
-        isub = 0  # fixed, never changed
+    # Read HDFS to Spark DataFrame and clean NAs
+    data_sdf_i = spark.read.csv(file_path[file_no_i],
+                                header=True,
+                                schema=schema_sdf)
+    data_sdf_i = data_sdf_i.select(usecols_x + [Y_name])
+    data_sdf_i = data_sdf_i.dropna()
 
-        # Read HDFS to Spark DataFrame and clean NAs
-        data_sdf_i = spark.read.csv(file_path[file_no_i],
-                                    header=True,
-                                    schema=schema_sdf)
-        data_sdf_i = data_sdf_i.select(usecols_x + [Y_name])
-        data_sdf_i = data_sdf_i.dropna()
+    # Define or transform response variable. Or use
+    # https://spark.apache.org/docs/latest/ml-features.html#binarizer
+    data_sdf_i = data_sdf_i.withColumn(
+        Y_name,
+        F.when(data_sdf_i[Y_name] > 0, 1).otherwise(0))
 
-        # Define or transform response variable. Or use
-        # https://spark.apache.org/docs/latest/ml-features.html#binarizer
-        data_sdf_i = data_sdf_i.withColumn(
-            Y_name,
-            F.when(data_sdf_i[Y_name] > 0, 1).otherwise(0))
+    sample_size_sub.append(data_sdf_i.count())
+    partition_num_sub.append(
+        ceil(sample_size_sub[file_no_i] / sample_size_per_partition))
 
-        sample_size_sub.append(data_sdf_i.count())
-        partition_num_sub.append(
-            ceil(sample_size_sub[file_no_i] / sample_size_per_partition))
-
-        ## Add partition ID
-        data_sdf_i = data_sdf_i.withColumn(
-            "partition_id",
-            monotonically_increasing_id() % partition_num_sub[file_no_i])
+    ## Add partition ID
+    data_sdf_i = data_sdf_i.withColumn(
+        "partition_id",
+        monotonically_increasing_id() % partition_num_sub[file_no_i])
 
 ##----------------------------------------------------------------------------------------
 ## MODEL FITTING ON PARTITIONED DATA
 ##----------------------------------------------------------------------------------------
 # Split the process into small subs if reading a real big DataFrame which my cause
 # MemoryError
-    if using_data in ["real_pdf", "simulated_pdf"]:
-        nsub = ceil(sample_size_sub[file_no_i] / max_sample_size_per_sdf)
+if using_data in ["real_pdf", "simulated_pdf"]:
+    nsub = ceil(sample_size_sub[file_no_i] / max_sample_size_per_sdf)
 
-        for isub in range(nsub):
-            # Convert Pandas DataFrame to Spark DataFrame
-            idx_curr_sub = [
-                round(sample_size_sub[file_no_i] / nsub * isub),
-                round(sample_size_sub[file_no_i] / nsub * (isub + 1))
-            ]
+    for isub in range(nsub):
+        # Convert Pandas DataFrame to Spark DataFrame
+        idx_curr_sub = [
+            round(sample_size_sub[file_no_i] / nsub * isub),
+            round(sample_size_sub[file_no_i] / nsub * (isub + 1))
+        ]
 
-            data_sdf_isub = spark.createDataFrame(
-                data_pdf_i.iloc[idx_curr_sub[0]:idx_curr_sub[1], ])
+        data_sdf_isub = spark.createDataFrame(
+            data_pdf_i.iloc[idx_curr_sub[0]:idx_curr_sub[1], ])
 
-            # Union all sequential feeded pdf to sdf.
-            if isub == 0:
-                data_sdf_i = data_sdf_isub
-                # memsize_sub = sys.getsizeof(data_pdf_i)
-            else:
-                data_sdf_i = data_sdf_i.unionAll(data_sdf_isub)
-
-            loop_counter += 1
-            time_elapsed = time.perf_counter() - tic_2sdf
-            time_to_go = timedelta(seconds=time_elapsed / loop_counter *
-                                   (n_files * nsub - loop_counter))
-            print('Creating Spark DataFrame:\t' + str(isub) + '/' + str(nsub))
-            print('Time elapsed:\t' +
-                  str(timedelta(seconds=time.perf_counter() - tic_2sdf)) +
-                  '.\tTime to go:\t' + str(time_to_go))
-
-    time_2sdf_sub.append(time.perf_counter() - tic_2sdf)
-
-    ##----------------------------------------------------------------------------------------
-    ## MODELING ON PARTITIONED DATA
-    ##----------------------------------------------------------------------------------------
-    # Load or Create descriptive statistics used for standardizing data.
-    if data_info_path["save"] is True:
-        # descriptive statistics
-        data_info = data_sdf_i.describe().toPandas()
-        data_info.to_csv(os.path.expanduser(data_info_path["path"]),
-                         index=False)
-        print("Descriptive statistics for data are saved to:\t" +
-              data_info_path["path"])
-    else:
-        # Load data info
-        data_info = pd.read_csv(os.path.expanduser(data_info_path["path"]))
-        print("Descriptive statistics for data are loaded from file:\t" +
-              data_info_path["path"])
-
-    # Independent fit chunked data with UDF.
-    if 'dlsa_logistic' in fit_algorithms:
-        tictoc['repartition'] = [time.perf_counter()]
-        data_sdf_i = data_sdf_i.repartition(partition_num_sub[file_no_i],
-                                            "partition_id")
-        tictoc['repartition_sub'].append(time.perf_counter() - tictoc['repartition'])
-
-        ## Register a user defined function via the Pandas UDF
-        schema_beta = StructType([
-            StructField('par_id', IntegerType(), True),
-            StructField('coef', DoubleType(), True),
-            StructField('Sig_invMcoef', DoubleType(), True)
-        ] + convert_schema(usecols_x, dummy_info, fit_intercept, dummy_factors_baseline))
-
-        @pandas_udf(schema_beta, PandasUDFType.GROUPED_MAP)
-        def logistic_model_udf(sample_df):
-            return logistic_model(sample_df=sample_df,
-                                  Y_name=Y_name,
-                                  fit_intercept=fit_intercept,
-                                  dummy_info=dummy_info,
-                                  dummy_factors_baseline=dummy_factors_baseline,
-                                  data_info=data_info)
-
-        # pdb.set_trace()
-        # partition the data and run the UDF
-        model_mapped_sdf_i = data_sdf_i.groupby("partition_id").apply(logistic_model_udf)
-
-        # Union all sequential mapped results.
-        if file_no_i == 0 and isub == 0:
-            model_mapped_sdf = model_mapped_sdf_i
+        # Union all sequential feeded pdf to sdf.
+        if isub == 0:
+            data_sdf_i = data_sdf_isub
             # memsize_sub = sys.getsizeof(data_pdf_i)
         else:
-            model_mapped_sdf = model_mapped_sdf.unionAll(model_mapped_sdf_i)
+            data_sdf_i = data_sdf_i.unionAll(data_sdf_isub)
+
+        loop_counter += 1
+        time_elapsed = time.perf_counter() - tic_2sdf
+        time_to_go = timedelta(seconds=time_elapsed / loop_counter *
+                               (n_files * nsub - loop_counter))
+        print('Creating Spark DataFrame:\t' + str(isub) + '/' + str(nsub))
+        print('Time elapsed:\t' +
+              str(timedelta(seconds=time.perf_counter() - tic_2sdf)) +
+              '.\tTime to go:\t' + str(time_to_go))
+
+# time_2sdf_sub.append(time.perf_counter() - tic_2sdf)
+
+##----------------------------------------------------------------------------------------
+## MODELING ON PARTITIONED DATA
+##----------------------------------------------------------------------------------------
+# Load or Create descriptive statistics used for standardizing data.
+if data_info_path["save"] is True:
+    # descriptive statistics
+    data_info = data_sdf_i.describe().toPandas()
+    data_info.to_csv(os.path.expanduser(data_info_path["path"]),
+                     index=False)
+    print("Descriptive statistics for data are saved to:\t" +
+          data_info_path["path"])
+else:
+    # Load data info
+    data_info = pd.read_csv(os.path.expanduser(data_info_path["path"]))
+    print("Descriptive statistics for data are loaded from file:\t" +
+          data_info_path["path"])
+
+# Independent fit chunked data with UDF.
+if 'dlsa_logistic' in fit_algorithms:
+    tictoc['repartition'] = [time.perf_counter()]
+    data_sdf_i = data_sdf_i.repartition(partition_num_sub[file_no_i], "partition_id")
+    # tictoc['repartition_sub'].append(time.perf_counter() - tictoc['repartition'])
+
+    ## Register a user defined function via the Pandas UDF
+    schema_beta = StructType([
+        StructField('par_id', IntegerType(), True),
+        StructField('coef', DoubleType(), True),
+        StructField('Sig_invMcoef', DoubleType(), True)
+    ] + convert_schema(usecols_x, dummy_info, fit_intercept, dummy_factors_baseline))
+
+    @pandas_udf(schema_beta, PandasUDFType.GROUPED_MAP)
+    def logistic_model_udf(sample_df):
+        return logistic_model(sample_df=sample_df,
+                              Y_name=Y_name,
+                              fit_intercept=fit_intercept,
+                              dummy_info=dummy_info,
+                              dummy_factors_baseline=dummy_factors_baseline,
+                              data_info=data_info)
+
+    # pdb.set_trace()
+    # partition the data and run the UDF
+    model_mapped_sdf_i = data_sdf_i.groupby("partition_id").apply(logistic_model_udf)
+
+    # Union all sequential mapped results.
+    if file_no_i == 0 and isub == 0:
+        model_mapped_sdf = model_mapped_sdf_i
+        # memsize_sub = sys.getsizeof(data_pdf_i)
+    else:
+        model_mapped_sdf = model_mapped_sdf.unionAll(model_mapped_sdf_i)
 
 ##----------------------------------------------------------------------------------------
 ## AGGREGATING THE MODEL ESTIMATES
