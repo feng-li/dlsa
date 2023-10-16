@@ -173,7 +173,7 @@ webencodings==0.5.1
 websockets==10.4
 xdg==5
 yapf==0.32.0
-yt-dlp==2023.3.4
+yt-dlp==2023.9.24
 zeroconf==0.47.3
 zipp==1.0.0
 zope.interface==5.5.2
