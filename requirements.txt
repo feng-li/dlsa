@@ -21,7 +21,7 @@ colorama==0.4.6
 coloredlogs==15.0.1
 constantly==15.1.0
 contourpy==1.0.7
-cryptography==38.0.4
+cryptography==41.0.4
 css-parser==1.0.8
 cssselect==1.2.0
 cupshelpers==1.0
