@@ -93,7 +93,7 @@ pdfminer.six==20221105
 pep8==1.7.1
 pexpect==4.8.0
 pikepdf==6.0.0+dfsg
-Pillow==9.4.0
+Pillow==10.0.1
 platformdirs==2.6.0
 pluggy==1.0.0+repack
 ply==3.11
