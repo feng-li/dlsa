@@ -13,7 +13,7 @@ bleach==5.0.1
 blinker==1.5
 Brlapi==0.8.4
 Brotli==1.0.9
-certifi==2022.9.24
+certifi==2023.7.22
 chardet==5.1.0
 charset-normalizer==3.0.1
 click==8.1.3
