@@ -8,6 +8,25 @@ In this work, we develop a distributed least squares approximation (DLSA) method
 - The entire methodology has been implemented in a Spark system available at https://github.com/feng-li/dlsa. 
 - An R package `dlsa` provides the conceptual demo available at https://github.com/feng-li/dlsa_r.
 
+## Modern `dstats` Interface
+
+This directory keeps the original DLSA implementation and examples for
+reference. New development is moving to the unified `dstats` package at
+<https://github.com/feng-li/dstats>.
+
+The migrated Spark 4 interface is available from `dstats.dlsa` and uses the
+current PySpark `applyInPandas` API. The new interface is intended to be used
+as part of the flat `dstats` package rather than through the old zipped-module
+Spark submission workflow.
+
+Typical usage in the new package is:
+
+```py
+from dstats.dlsa import dlsa_fit
+from dstats.dlsa import dlsa_mapreduce
+from dstats.dlsa import fit_logistic_partitions
+```
+
 ## System Requirements
 
 - `Spark >= 2.3.1`
