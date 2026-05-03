@@ -1,6 +1,6 @@
 findspark==2.0.1
 numpy==1.25.2
 setuptools==68.2.2
-pyspark==2.4.0
+pyspark==3.2.2
 pyarrow==0.15.0
 sklearn==0.21.2
